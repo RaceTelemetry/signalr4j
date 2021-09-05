@@ -9,51 +9,43 @@ package com.github.signalr4j.client;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 
 /**
- * Represents long running SignalR operations
+ * Represents long-running SignalR operations
  */
 public class SignalRFuture<V> implements Future<V> {
-    boolean mIsCancelled = false;
-    boolean mIsDone = false;
-    private V mResult = null;
-    private List<Runnable> mOnCancelled = new ArrayList<Runnable>();
-    private List<Action<V>> mOnDone = new ArrayList<Action<V>>();
-    private Object mDoneLock = new Object();
-    private List<ErrorCallback> mErrorCallback = new ArrayList<ErrorCallback>();
-    private Queue<Throwable> mErrorQueue = new ConcurrentLinkedQueue<Throwable>();
-    private Object mErrorLock = new Object();
-    private Throwable mLastError = null;
+    boolean isCancelled = false;
+    boolean isDone = false;
+    private V result = null;
+    private final List<Runnable> onCancelled = new ArrayList<>();
+    private final List<Action<V>> onDone = new ArrayList<>();
+    private final Object doneLock = new Object();
+    private final List<ErrorCallback> errorCallback = new ArrayList<>();
+    private final Queue<Throwable> errorQueue = new ConcurrentLinkedQueue<>();
+    private final Object errorLock = new Object();
+    private Throwable lastError = null;
 
-    private Semaphore mResultSemaphore = new Semaphore(0);
+    private final Semaphore resultSemaphore = new Semaphore(0);
 
     /**
      * Handles the cancellation event
-     * 
-     * @param onCancelled
-     *            The handler
+     *
+     * @param onCancelled The handler
      */
     public void onCancelled(Runnable onCancelled) {
-        mOnCancelled.add(onCancelled);
+        this.onCancelled.add(onCancelled);
     }
 
     /**
      * Cancels the operation
      */
     public void cancel() {
-        mIsCancelled = true;
-        if (mOnCancelled != null) {
-            for (Runnable onCancelled : mOnCancelled) {
-                onCancelled.run();
-            }
+        isCancelled = true;
+        for (Runnable onCancelled : onCancelled) {
+            onCancelled.run();
         }
-        mResultSemaphore.release();
+        resultSemaphore.release();
     }
 
     /**
@@ -63,12 +55,12 @@ public class SignalRFuture<V> implements Future<V> {
      *            The future result
      */
     public void setResult(V result) {
-        synchronized (mDoneLock) {
-            mResult = result;
-            mIsDone = true;
+        synchronized (doneLock) {
+            this.result = result;
+            isDone = true;
 
-            if (mOnDone.size() > 0) {
-                for (Action<V> handler : mOnDone) {
+            if (onDone.size() > 0) {
+                for (Action<V> handler : onDone) {
                     try {
                         handler.run(result);
                     } catch (Exception e) {
@@ -78,7 +70,7 @@ public class SignalRFuture<V> implements Future<V> {
             }
         }
 
-        mResultSemaphore.release();
+        resultSemaphore.release();
     }
 
     /**
@@ -87,7 +79,7 @@ public class SignalRFuture<V> implements Future<V> {
      * @return True if the operation is cancelled
      */
     public boolean isCancelled() {
-        return mIsCancelled;
+        return isCancelled;
     }
 
     @Override
@@ -107,13 +99,13 @@ public class SignalRFuture<V> implements Future<V> {
 
     @Override
     public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-        if (mResultSemaphore.tryAcquire(timeout, unit)) {
+        if (resultSemaphore.tryAcquire(timeout, unit)) {
             if (errorWasTriggered()) {
-                throw new ExecutionException(mLastError);
+                throw new ExecutionException(lastError);
             } else if (isCancelled()) {
                 throw new InterruptedException("Operation was cancelled");
             } else {
-                return mResult;
+                return result;
             }
         } else {
             throw new TimeoutException();
@@ -122,7 +114,7 @@ public class SignalRFuture<V> implements Future<V> {
 
     @Override
     public boolean isDone() {
-        return mIsDone;
+        return isDone;
     }
 
     /**
@@ -133,8 +125,8 @@ public class SignalRFuture<V> implements Future<V> {
      *            The handler
      */
     public SignalRFuture<V> done(Action<V> action) {
-        synchronized (mDoneLock) {
-            mOnDone.add(action);
+        synchronized (doneLock) {
+            onDone.add(action);
 
             if (isDone()) {
                 try {
@@ -157,12 +149,12 @@ public class SignalRFuture<V> implements Future<V> {
      *            The handler
      */
     public SignalRFuture<V> onError(ErrorCallback errorCallback) {
-        synchronized (mErrorLock) {
-            mErrorCallback.add(errorCallback);
-            while (!mErrorQueue.isEmpty()) {
+        synchronized (errorLock) {
+            this.errorCallback.add(errorCallback);
+            while (!errorQueue.isEmpty()) {
                 // Only the first error handler will get the queued errors
                 if (errorCallback != null) {
-                    errorCallback.onError(mErrorQueue.poll());
+                    errorCallback.onError(errorQueue.poll());
                 }
             }
         }
@@ -177,26 +169,26 @@ public class SignalRFuture<V> implements Future<V> {
      *            The error
      */
     public void triggerError(Throwable error) {
-        synchronized (mErrorLock) {
-            mLastError = error;
-            mResultSemaphore.release();
-            if (mErrorCallback.size() > 0) {
-                for (ErrorCallback handler : mErrorCallback) {
+        synchronized (errorLock) {
+            lastError = error;
+            resultSemaphore.release();
+            if (errorCallback.size() > 0) {
+                for (ErrorCallback handler : errorCallback) {
                     handler.onError(error);
                 }
             } else {
-                mErrorQueue.add(error);
+                errorQueue.add(error);
             }
         }
     }
-    
+
     /**
      * Indicates if an error was triggered
      * 
      * @return True if an error was triggered
      */
     public boolean errorWasTriggered() {
-        return mLastError != null;
+        return lastError != null;
     }
 
 }

@@ -6,6 +6,11 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.http;
 
+import com.github.signalr4j.client.Constants;
+import com.github.signalr4j.client.LogLevel;
+import com.github.signalr4j.client.Logger;
+import com.github.signalr4j.client.SimpleEntry;
+
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -14,46 +19,40 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.github.signalr4j.client.Constants;
-import com.github.signalr4j.client.LogLevel;
-import com.github.signalr4j.client.Logger;
-import com.github.signalr4j.client.SimpleEntry;
-
 /**
  * Represents an HTTP Request
  */
 public class Request {
 
-	private String mVerb;
+	private String verb;
 
-	private String mContent;
+	private String content;
 
-	private HashMap<String, String> mHeaders = new HashMap<String, String>();
+	private HashMap<String, String> headers = new HashMap<>();
 
-	private String mUrl;
+	private String url;
 
 	/**
 	 * Initializes a request with an HTTP verb
-	 * 
-	 * @param httpVerb
-	 *            the HTTP verb
+	 *
+	 * @param httpVerb the HTTP verb
 	 */
 	public Request(String httpVerb) {
-		mVerb = httpVerb;
+		verb = httpVerb;
 	}
 
 	/**
 	 * Sets the request content
 	 */
 	public void setContent(String content) {
-		mContent = content;
+		this.content = content;
 	}
 
 	/**
 	 * Returns the request content
 	 */
 	public String getContent() {
-		return mContent;
+		return content;
 	}
 
 	/**
@@ -66,8 +65,8 @@ public class Request {
 	 *            The value for the form data
 	 */
 	public void setFormContent(String name, String value) {
-		List<Entry<String, String>> formValues = new ArrayList<Entry<String, String>>();
-		formValues.add(new SimpleEntry<String, String>(name, value));
+		List<Entry<String, String>> formValues = new ArrayList<>();
+		formValues.add(new SimpleEntry<>(name, value));
 
 		setFormContent(formValues);
 	}
@@ -86,21 +85,18 @@ public class Request {
 			try {
 				sb.append(String.format("%s=%s&", URLEncoder.encode(entry.getKey(), Constants.UTF8_NAME),
 						URLEncoder.encode(entry.getValue(), Constants.UTF8_NAME)));
-			} catch (UnsupportedEncodingException e) {
+			} catch (UnsupportedEncodingException ignored) {
 			}
 		}
 
-		mContent = sb.toString();
+		content = sb.toString();
 	}
 
 	/**
 	 * Returns the request headers
 	 */
 	public Map<String, String> getHeaders() {
-		HashMap<String, String> copy = new HashMap<String, String>();
-		copy.putAll(mHeaders);
-
-		return copy;
+		return new HashMap<>(headers);
 	}
 
 	/**
@@ -114,21 +110,17 @@ public class Request {
 	 *         field in the header.
 	 */
 	public String getHeaderField(String name) {
-		if (this.mHeaders.containsKey(name)) {
-			return this.mHeaders.get(name);
-		} else {
-			return null;
-		}
+		return this.headers.getOrDefault(name, null);
 	}
 
 	/**
 	 * Sets the request headers
 	 */
 	public void setHeaders(Map<String, String> headers) {
-		mHeaders = new HashMap<String, String>();
+		this.headers = new HashMap<>();
 
 		if (headers != null) {
-			mHeaders.putAll(headers);
+			this.headers.putAll(headers);
 		}
 	}
 
@@ -141,7 +133,7 @@ public class Request {
 	 *            The header value
 	 */
 	public void addHeader(String name, String value) {
-		mHeaders.put(name, value);
+		headers.put(name, value);
 	}
 
 	/**
@@ -151,35 +143,35 @@ public class Request {
 	 *            The header name
 	 */
 	public void removeHeader(String name) {
-		mHeaders.remove(name);
+		headers.remove(name);
 	}
 
 	/**
 	 * Sets the request HTTP verb
 	 */
 	public void setVerb(String httpVerb) {
-		mVerb = httpVerb;
+		verb = httpVerb;
 	}
 
 	/**
 	 * Returns the request HTTP verb
 	 */
 	public String getVerb() {
-		return mVerb;
+		return verb;
 	}
 
 	/**
 	 * Sets the request URL
 	 */
 	public void setUrl(String url) {
-		mUrl = url;
+		this.url = url;
 	}
 
 	/**
 	 * Returns the request URL
 	 */
 	public String getUrl() {
-		return mUrl;
+		return url;
 	}
 
 	/**
@@ -190,13 +182,13 @@ public class Request {
 	 */
 	public void log(Logger logger) {
 		if (logger != null) {
-			logger.log("URL: " + getUrl(), LogLevel.Verbose);
-			logger.log("VERB: " + getVerb(), LogLevel.Verbose);
+			logger.log("URL: " + getUrl(), LogLevel.VERBOSE);
+			logger.log("VERB: " + getVerb(), LogLevel.VERBOSE);
 
-			for (String key : mHeaders.keySet()) {
-				logger.log("Header " + key + ": " + mHeaders.get(key), LogLevel.Verbose);
+			for (String key : headers.keySet()) {
+				logger.log("Header " + key + ": " + headers.get(key), LogLevel.VERBOSE);
 			}
-			logger.log("CONTENT: " + getContent(), LogLevel.Verbose);
+			logger.log("CONTENT: " + getContent(), LogLevel.VERBOSE);
 		}
 	}
 }

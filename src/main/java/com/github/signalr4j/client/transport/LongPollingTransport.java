@@ -6,32 +6,22 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.transport;
 
-import com.github.signalr4j.client.Logger;
-import com.github.signalr4j.client.ConnectionState;
-import com.github.signalr4j.client.ErrorCallback;
-import com.github.signalr4j.client.SignalRFuture;
-import com.github.signalr4j.client.ConnectionBase;
-import com.github.signalr4j.client.Constants;
-import com.github.signalr4j.client.LogLevel;
-import com.github.signalr4j.client.UpdateableCancellableFuture;
+import com.github.signalr4j.client.*;
 import com.github.signalr4j.client.http.HttpConnection;
 import com.github.signalr4j.client.http.HttpConnectionFuture;
-import com.github.signalr4j.client.http.HttpConnectionFuture.ResponseCallback;
 import com.github.signalr4j.client.http.Request;
-import com.github.signalr4j.client.http.Response;
 
 /**
  * HttpClientTransport implementation over long polling
  */
 public class LongPollingTransport extends HttpClientTransport {
-    private UpdateableCancellableFuture<Void> mConnectionFuture;
-    private Object mPollSync = new Object();
+    private UpdateableCancellableFuture<Void> connectionFuture;
+    private final Object pollSync = new Object();
 
     /**
      * Initializes the transport
-     * 
-     * @param logger
-     *            logger to log actions
+     *
+     * @param logger logger to log actions
      */
     public LongPollingTransport(Logger logger) {
         super(logger);
@@ -61,7 +51,7 @@ public class LongPollingTransport extends HttpClientTransport {
 
     @Override
     public SignalRFuture<Void> start(ConnectionBase connection, ConnectionType connectionType, DataResultCallback callback) {
-        return poll(connection, connectionType == ConnectionType.InitialConnection ? "connect" : "reconnect", callback);
+        return poll(connection, connectionType == ConnectionType.INITIAL_CONNECTION ? "connect" : "reconnect", callback);
     }
 
     /**
@@ -76,8 +66,8 @@ public class LongPollingTransport extends HttpClientTransport {
      * @return Future for the operation
      */
     private SignalRFuture<Void> poll(final ConnectionBase connection, final String connectionUrl, final DataResultCallback callback) {
-        synchronized (mPollSync) {
-            log("Start the communication with the server", LogLevel.Information);
+        synchronized (pollSync) {
+            log("Start the communication with the server", LogLevel.INFORMATION);
             String url = connection.getUrl() + connectionUrl + TransportHelper.getReceiveQueryString(this, connection);
 
             Request get = new Request(Constants.HTTP_GET);
@@ -87,73 +77,61 @@ public class LongPollingTransport extends HttpClientTransport {
 
             connection.prepareRequest(get);
 
-            log("Execute the request", LogLevel.Verbose);
-            mConnectionFuture = new UpdateableCancellableFuture<Void>(null);
+            log("Execute the request", LogLevel.VERBOSE);
+            connectionFuture = new UpdateableCancellableFuture<>(null);
 
-            final HttpConnectionFuture future = mHttpConnection.execute(get, new ResponseCallback() {
+            final HttpConnectionFuture future = httpConnection.execute(get, response -> {
+                synchronized (pollSync) {
+                    try {
+                        throwOnInvalidStatusCode(response);
 
-                @Override
-                public void onResponse(Response response) {
-                    synchronized (mPollSync) {
-                        try {
-                            throwOnInvalidStatusCode(response);
+                        if (!"poll".equals(connectionUrl)) {
+                            connectionFuture.setResult(null);
+                        }
+                        log("Response received", LogLevel.VERBOSE);
 
-                            if (connectionUrl != "poll") {
-                                mConnectionFuture.setResult(null);
-                            }
-                            log("Response received", LogLevel.Verbose);
+                        log("Read response to the end", LogLevel.VERBOSE);
+                        String responseData = response.readToEnd();
+                        if (responseData != null) {
+                            responseData = responseData.trim();
+                        }
 
-                            log("Read response to the end", LogLevel.Verbose);
-                            String responseData = response.readToEnd();
-                            if (responseData != null) {
-                                responseData = responseData.trim();
-                            }
+                        log("Trigger onData with data: " + responseData, LogLevel.VERBOSE);
+                        callback.onData(responseData);
 
-                            log("Trigger onData with data: " + responseData, LogLevel.Verbose);
-                            callback.onData(responseData);
-
-                            if (!mConnectionFuture.isCancelled() && connection.getState() == ConnectionState.Connected) {
-                                log("Continue polling", LogLevel.Verbose);
-                                mConnectionFuture.setFuture(poll(connection, "poll", callback));
-                            }
-                        } catch (Throwable e) {
-                            if (!mConnectionFuture.isCancelled()) {
-                                log(e);
-                                mConnectionFuture.triggerError(e);
-                            }
+                        if (!connectionFuture.isCancelled() && connection.getState() == ConnectionState.CONNECTED) {
+                            log("Continue polling", LogLevel.VERBOSE);
+                            connectionFuture.setFuture(poll(connection, "poll", callback));
+                        }
+                    } catch (Throwable e) {
+                        if (!connectionFuture.isCancelled()) {
+                            log(e);
+                            connectionFuture.triggerError(e);
                         }
                     }
                 }
             });
 
-            future.onTimeout(new ErrorCallback() {
-
-                @Override
-                public void onError(Throwable error) {
-                    synchronized (mPollSync) {
-                        if (connectionUrl.equals("poll")) {
-                            // if the poll request timed out, it should re-poll
-                            mConnectionFuture.setFuture(poll(connection, "poll", callback));
-                        } else {
-                            future.triggerError(error);
-                        }
+            future.onTimeout(error -> {
+                synchronized (pollSync) {
+                    if (connectionUrl.equals("poll")) {
+                        // if the poll request timed out, it should re-poll
+                        connectionFuture.setFuture(poll(connection, "poll", callback));
+                    } else {
+                        future.triggerError(error);
                     }
                 }
             });
 
-            future.onError(new ErrorCallback() {
-
-                @Override
-                public void onError(Throwable error) {
-                    synchronized (mPollSync) {
-                        mConnectionFuture.triggerError(error);
-                    }
+            future.onError(error -> {
+                synchronized (pollSync) {
+                    connectionFuture.triggerError(error);
                 }
             });
 
-            mConnectionFuture.setFuture(future);
+            connectionFuture.setFuture(future);
 
-            return mConnectionFuture;
+            return connectionFuture;
         }
     }
 }

@@ -10,5 +10,8 @@ package com.github.signalr4j.client;
  * Represents the state of a connection
  */
 public enum ConnectionState {
-    Connecting, Connected, Reconnecting, Disconnected
+    CONNECTING,
+    CONNECTED,
+    RECONNECTING,
+    DISCONNECTED
 }

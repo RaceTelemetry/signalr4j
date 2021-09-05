@@ -16,19 +16,18 @@ import com.google.gson.JsonParser;
 public class NegotiationResponse {
     public static final double INVALID_KEEP_ALIVE_TIMEOUT = -1;
 
-    private String mConnectionId;
-    private String mConnectionToken;
-    private String mUrl;
-    private String mProtocolVersion;
-    private double mDisconnectTimeout;
-    private boolean mTryWebSockets;
-    private double mKeepAliveTimeout;
+    private String connectionId;
+    private String connectionToken;
+    private String url;
+    private String protocolVersion;
+    private double disconnectTimeout;
+    private boolean tryWebSockets;
+    private double keepAliveTimeout;
 
     /**
      * Initializes the negotiation response with Json data
-     * 
-     * @param jsonContent
-     *            Json data
+     *
+     * @param jsonContent Json data
      */
     public NegotiationResponse(String jsonContent, JsonParser parser) {
         if (jsonContent == null || "".equals(jsonContent)) {
@@ -54,58 +53,58 @@ public class NegotiationResponse {
     }
 
     public String getConnectionId() {
-        return mConnectionId;
+        return connectionId;
     }
 
     public void setConnectionId(String connectionId) {
-        mConnectionId = connectionId;
+        this.connectionId = connectionId;
     }
 
     public String getConnectionToken() {
-        return mConnectionToken;
+        return connectionToken;
     }
 
     public void setConnectionToken(String connectionToken) {
-        mConnectionToken = connectionToken;
+        this.connectionToken = connectionToken;
     }
 
     public String getUrl() {
-        return mUrl;
+        return url;
     }
 
     public void setUrl(String url) {
-        mUrl = url;
+        this.url = url;
     }
 
     public String getProtocolVersion() {
-        return mProtocolVersion;
+        return protocolVersion;
     }
 
     public void setProtocolVersion(String protocolVersion) {
-        mProtocolVersion = protocolVersion;
+        this.protocolVersion = protocolVersion;
     }
 
     public double getDisconnectTimeout() {
-        return mDisconnectTimeout;
+        return disconnectTimeout;
     }
 
     public void setDisconnectTimeout(double disconnectTimeout) {
-        mDisconnectTimeout = disconnectTimeout;
+        this.disconnectTimeout = disconnectTimeout;
     }
 
     public boolean shouldTryWebSockets() {
-        return mTryWebSockets;
+        return tryWebSockets;
     }
 
     public void setTryWebSockets(boolean tryWebSockets) {
-        mTryWebSockets = tryWebSockets;
+        this.tryWebSockets = tryWebSockets;
     }
 
     public double getKeepAliveTimeout() {
-        return mKeepAliveTimeout;
+        return keepAliveTimeout;
     }
 
     public void setKeepAliveTimeout(double keepAliveTimeout) {
-        mKeepAliveTimeout = keepAliveTimeout;
+        this.keepAliveTimeout = keepAliveTimeout;
     }
 }

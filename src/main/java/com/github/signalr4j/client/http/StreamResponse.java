@@ -10,56 +10,53 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.github.signalr4j.client.Constants;
-
 /**
  * Response implementation based on an InputStream
  */
 public class StreamResponse implements Response {
-    private BufferedReader mReader;
-    private int mStatus;
-    private InputStream mOriginalStream;
-    Map<String, List<String>> mHeaders;
+    private final BufferedReader reader;
+    private final int status;
+    private final InputStream originalStream;
+    Map<String, List<String>> headers;
 
     /**
      * Initializes the StreamResponse
-     * 
-     * @param stream
-     *            stream to read
-     * @param status
-     *            HTTP status code
+     *
+     * @param stream stream to read
+     * @param status HTTP status code
      */
     public StreamResponse(InputStream stream, int status, Map<String, List<String>> headers) {
-        mOriginalStream = stream;
-        mReader = new BufferedReader(new InputStreamReader(mOriginalStream, Constants.UTF8));
-        mHeaders = new HashMap<String, List<String>>(headers);
-        mStatus = status;
+        originalStream = stream;
+        reader = new BufferedReader(new InputStreamReader(originalStream, StandardCharsets.UTF_8));
+        this.headers = new HashMap<>(headers);
+        this.status = status;
     }
 
     public byte[] readAllBytes() throws IOException {
-        List<Byte> bytes = new ArrayList<Byte>();
+        List<Byte> bytes = new ArrayList<>();
 
         int bufferSize = 1024;
         byte[] buffer = new byte[bufferSize];
 
-        int bytesRead = mOriginalStream.read(buffer, 0, bufferSize);
+        int bytesRead = originalStream.read(buffer, 0, bufferSize);
         while (bytesRead != -1) {
             for (int i = 0; i < bytesRead; i++) {
                 bytes.add(buffer[i]);
             }
 
-            bytesRead = mOriginalStream.read(buffer, 0, bufferSize);
+            bytesRead = originalStream.read(buffer, 0, bufferSize);
         }
 
         byte[] byteArray = new byte[bytes.size()];
 
         for (int i = 0; i < bytes.size(); i++) {
-            byteArray[i] = bytes.get(i).byteValue();
+            byteArray[i] = bytes.get(i);
         }
 
         return byteArray;
@@ -68,8 +65,8 @@ public class StreamResponse implements Response {
     @Override
     public String readToEnd() throws IOException {
         StringBuilder sb = new StringBuilder();
-        String line = null;
-        while ((line = mReader.readLine()) != null) {
+        String line;
+        while ((line = reader.readLine()) != null) {
             sb.append(line);
             sb.append("\n");
         }
@@ -79,21 +76,21 @@ public class StreamResponse implements Response {
 
     @Override
     public int getStatus() {
-        return mStatus;
+        return status;
     }
 
     @Override
     public String readLine() throws IOException {
-        return mReader.readLine();
+        return reader.readLine();
     }
 
     @Override
     public Map<String, List<String>> getHeaders() {
-        return new HashMap<String, List<String>>(mHeaders);
+        return new HashMap<>(headers);
     }
 
     @Override
     public List<String> getHeader(String headerName) {
-        return mHeaders.get(headerName);
+        return headers.get(headerName);
     }
 }

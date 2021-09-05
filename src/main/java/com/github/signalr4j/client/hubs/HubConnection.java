@@ -6,34 +6,28 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.hubs;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-
-import com.github.signalr4j.client.Action;
-import com.github.signalr4j.client.Logger;
+import com.github.signalr4j.client.*;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import com.github.signalr4j.client.ConnectionState;
-import com.github.signalr4j.client.InvalidStateException;
-import com.github.signalr4j.client.LogLevel;
-import com.github.signalr4j.client.Connection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * Represents a SignalRConnection that implements the Hubs protocol
  */
 public class HubConnection extends Connection {
 
-    private Map<String, Action<HubResult>> mCallbacks = Collections.synchronizedMap(new HashMap<String, Action<HubResult>>());
-    private Map<String, HubProxy> mHubs = Collections.synchronizedMap(new HashMap<String, HubProxy>());
-    private Integer mCallbackId = 0;
+    private final Map<String, Action<HubResult>> callbacks = Collections.synchronizedMap(new HashMap<>());
+    private final Map<String, HubProxy> hubs = Collections.synchronizedMap(new HashMap<>());
+    private Integer callbackId = 0;
 
     /**
      * Initializes the connection
-     * 
+     *
      * @param url
      *            The connection URL
      * @param queryString
@@ -73,46 +67,46 @@ public class HubConnection extends Connection {
     public void onReceived(JsonElement message) {
         super.onReceived(message);
 
-        log("Processing message", LogLevel.Information);
-        if (getState() == ConnectionState.Connected) {
+        log("Processing message", LogLevel.INFORMATION);
+        if (getState() == ConnectionState.CONNECTED) {
             if (message.isJsonObject() && message.getAsJsonObject().has("I")) {
-                log("Getting HubResult from message", LogLevel.Verbose);
-                HubResult result = mGson.fromJson(message, HubResult.class);
-    
+                log("Getting HubResult from message", LogLevel.VERBOSE);
+                HubResult result = gson.fromJson(message, HubResult.class);
+
                 String id = result.getId().toLowerCase(Locale.getDefault());
-                log("Result Id: " + id, LogLevel.Verbose);
-                log("Result Data: " + result.getResult(), LogLevel.Verbose);
-    
-                if (mCallbacks.containsKey(id)) {
-                    log("Get and remove callback with id: " + id, LogLevel.Verbose);
-                    Action<HubResult> callback = mCallbacks.remove(id);
-    
+                log("Result Id: " + id, LogLevel.VERBOSE);
+                log("Result Data: " + result.getResult(), LogLevel.VERBOSE);
+
+                if (callbacks.containsKey(id)) {
+                    log("Get and remove callback with id: " + id, LogLevel.VERBOSE);
+                    Action<HubResult> callback = callbacks.remove(id);
+
                     try {
-                        log("Execute callback for message", LogLevel.Verbose);
+                        log("Execute callback for message", LogLevel.VERBOSE);
                         callback.run(result);
                     } catch (Exception e) {
                         onError(e, false);
                     }
                 }
             } else {
-                HubInvocation invocation = mGson.fromJson(message, HubInvocation.class);
-                log("Getting HubInvocation from message", LogLevel.Verbose);
-    
+                HubInvocation invocation = gson.fromJson(message, HubInvocation.class);
+                log("Getting HubInvocation from message", LogLevel.VERBOSE);
+
                 String hubName = invocation.getHub().toLowerCase(Locale.getDefault());
-                log("Message for: " + hubName, LogLevel.Verbose);
-    
-                if (mHubs.containsKey(hubName)) {
-                    HubProxy hubProxy = mHubs.get(hubName);
+                log("Message for: " + hubName, LogLevel.VERBOSE);
+
+                if (hubs.containsKey(hubName)) {
+                    HubProxy hubProxy = hubs.get(hubName);
                     if (invocation.getState() != null) {
                         for (String key : invocation.getState().keySet()) {
                             JsonElement value = invocation.getState().get(key);
-                            log("Setting state for hub: " + key + " -> " + value, LogLevel.Verbose);
+                            log("Setting state for hub: " + key + " -> " + value, LogLevel.VERBOSE);
                             hubProxy.setState(key, value);
                         }
                     }
-    
+
                     String eventName = invocation.getMethod().toLowerCase(Locale.getDefault());
-                    log("Invoking event: " + eventName + " with arguments " + arrayToString(invocation.getArgs()), LogLevel.Verbose);
+                    log("Invoking event: " + eventName + " with arguments " + arrayToString(invocation.getArgs()), LogLevel.VERBOSE);
     
                     try {
                         hubProxy.invokeEvent(eventName, invocation.getArgs());
@@ -146,7 +140,7 @@ public class HubConnection extends Connection {
     public String getConnectionData() {
         JsonArray jsonArray = new JsonArray();
 
-        for (String hubName : mHubs.keySet()) {
+        for (String hubName : hubs.keySet()) {
             JsonObject element = new JsonObject();
             element.addProperty("name", hubName);
             jsonArray.add(element);
@@ -154,7 +148,7 @@ public class HubConnection extends Connection {
 
         String connectionData = jsonArray.toString();
 
-        log("Getting connection data: " + connectionData, LogLevel.Verbose);
+        log("Getting connection data: " + connectionData, LogLevel.VERBOSE);
         return connectionData;
     }
 
@@ -165,19 +159,19 @@ public class HubConnection extends Connection {
     }
 
     private void clearInvocationCallbacks(String error) {
-        log("Clearing invocation callbacks: " + error, LogLevel.Verbose);
+        log("Clearing invocation callbacks: " + error, LogLevel.VERBOSE);
         HubResult result = new HubResult();
         result.setError(error);
 
-        for (String key : mCallbacks.keySet()) {
+        for (String key : callbacks.keySet()) {
             try {
-                log("Invoking callback with empty result: " + key, LogLevel.Verbose);
-                mCallbacks.get(key).run(result);
-            } catch (Exception e) {
+                log("Invoking callback with empty result: " + key, LogLevel.VERBOSE);
+                callbacks.get(key).run(result);
+            } catch (Exception ignored) {
             }
         }
 
-        mCallbacks.clear();
+        callbacks.clear();
     }
 
     @Override
@@ -197,8 +191,8 @@ public class HubConnection extends Connection {
      *             exception
      */
     public HubProxy createHubProxy(String hubName) {
-        if (mState != ConnectionState.Disconnected) {
-            throw new InvalidStateException(mState);
+        if (state != ConnectionState.DISCONNECTED) {
+            throw new InvalidStateException(state);
         }
 
         if (hubName == null) {
@@ -207,14 +201,14 @@ public class HubConnection extends Connection {
 
         String hubNameLower = hubName.toLowerCase(Locale.getDefault());
 
-        log("Creating hub proxy: " + hubNameLower, LogLevel.Information);
+        log("Creating hub proxy: " + hubNameLower, LogLevel.INFORMATION);
 
-        HubProxy proxy = null;
-        if (mHubs.containsKey(hubNameLower)) {
-            proxy = mHubs.get(hubNameLower);
+        HubProxy proxy;
+        if (hubs.containsKey(hubNameLower)) {
+            proxy = hubs.get(hubNameLower);
         } else {
             proxy = new HubProxy(this, hubName, getLogger());
-            mHubs.put(hubNameLower, proxy);
+            hubs.put(hubNameLower, proxy);
         }
 
         return proxy;
@@ -228,10 +222,10 @@ public class HubConnection extends Connection {
      * @return The callback Id
      */
     String registerCallback(Action<HubResult> callback) {
-        String id = mCallbackId.toString().toLowerCase(Locale.getDefault());
-        log("Registering callback: " + id, LogLevel.Verbose);
-        mCallbacks.put(id, callback);
-        mCallbackId++;
+        String id = callbackId.toString().toLowerCase(Locale.getDefault());
+        log("Registering callback: " + id, LogLevel.VERBOSE);
+        callbacks.put(id, callback);
+        callbackId++;
         return id;
     }
 
@@ -242,8 +236,8 @@ public class HubConnection extends Connection {
      *            Id for the callback to remove
      */
     void removeCallback(String callbackId) {
-        log("Removing callback: " + callbackId, LogLevel.Verbose);
-        mCallbacks.remove(callbackId.toLowerCase(Locale.getDefault()));
+        log("Removing callback: " + callbackId, LogLevel.VERBOSE);
+        callbacks.remove(callbackId.toLowerCase(Locale.getDefault()));
     }
 
     /**

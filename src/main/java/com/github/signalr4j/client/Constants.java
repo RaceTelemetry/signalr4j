@@ -6,7 +6,7 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client;
 
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Constants used through the framework
@@ -26,10 +26,5 @@ public class Constants {
     /**
      * UTF-8 Encoding name
      */
-    public static final String UTF8_NAME = "UTF-8";
-
-    /**
-     * UTF-8 Charset instance
-     */
-    public static final Charset UTF8 = Charset.forName(UTF8_NAME);
+    public static final String UTF8_NAME = StandardCharsets.UTF_8.name();
 }

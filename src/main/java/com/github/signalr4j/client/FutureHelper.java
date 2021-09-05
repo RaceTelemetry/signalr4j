@@ -23,21 +23,9 @@ public class FutureHelper {
      *            The target future
      */
     public static void copyHandlers(final SignalRFuture<?> sourceFuture, final SignalRFuture<?> targetFuture) {
-        targetFuture.onCancelled(new Runnable() {
+        targetFuture.onCancelled(sourceFuture::cancel);
 
-            @Override
-            public void run() {
-                sourceFuture.cancel();
-            }
-        });
-
-        sourceFuture.onError(new ErrorCallback() {
-
-            @Override
-            public void onError(Throwable error) {
-                targetFuture.triggerError(error);
-            }
-        });
+        sourceFuture.onError(targetFuture::triggerError);
     }
 
     /**
@@ -52,12 +40,6 @@ public class FutureHelper {
     public static void copyHandlers(HttpConnectionFuture sourceFuture, final SignalRFuture<?> targetFuture) {
         copyHandlers((SignalRFuture<?>) sourceFuture, targetFuture);
 
-        sourceFuture.onTimeout(new ErrorCallback() {
-
-            @Override
-            public void onError(Throwable error) {
-                targetFuture.triggerError(error);
-            }
-        });
+        sourceFuture.onTimeout(targetFuture::triggerError);
     }
 }

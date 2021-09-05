@@ -12,7 +12,7 @@ package com.github.signalr4j.client.hubs;
 public class HubException extends Exception {
 
     private static final long serialVersionUID = 5958638666959902780L;
-    private Object mErrorData;
+    private final Object errorData;
 
     /**
      * Creates a new Hub exception
@@ -25,13 +25,13 @@ public class HubException extends Exception {
     public HubException(String error, Object errorData) {
         super(error);
 
-        mErrorData = errorData;
+        this.errorData = errorData;
     }
 
     /**
      * Returns the error data
      */
     public Object getErrorData() {
-        return mErrorData;
+        return errorData;
     }
 }

@@ -6,23 +6,17 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.tests.mocktransport;
 
-import static org.junit.Assert.*;
-
+import com.github.signalr4j.client.NullLogger;
+import com.github.signalr4j.client.tests.util.*;
+import com.github.signalr4j.client.tests.util.MockHttpConnection.RequestEntry;
+import com.github.signalr4j.client.transport.ConnectionType;
+import com.github.signalr4j.client.transport.DataResultCallback;
+import com.github.signalr4j.client.transport.LongPollingTransport;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.github.signalr4j.client.NullLogger;
-import com.github.signalr4j.client.tests.util.MockHttpConnection;
-import com.github.signalr4j.client.tests.util.MockHttpConnection.RequestEntry;
-import com.github.signalr4j.client.tests.util.MockConnection;
-import com.github.signalr4j.client.tests.util.MultiResult;
-import com.github.signalr4j.client.tests.util.Sync;
-import com.github.signalr4j.client.tests.util.TransportType;
-import com.github.signalr4j.client.tests.util.Utils;
-import com.github.signalr4j.client.transport.ConnectionType;
-import com.github.signalr4j.client.transport.DataResultCallback;
-import com.github.signalr4j.client.transport.LongPollingTransport;
+import static org.junit.Assert.*;
 
 public class LongPollingTransportTests extends HttpClientTransportTests {
 
@@ -54,7 +48,7 @@ public class LongPollingTransportTests extends HttpClientTransportTests {
         final MultiResult result = new MultiResult();
         result.stringResult = "";
         result.booleanResult = true;
-        result.futureResult = transport.start(connection, ConnectionType.InitialConnection, new DataResultCallback() {
+        result.futureResult = transport.start(connection, ConnectionType.INITIAL_CONNECTION, new DataResultCallback() {
 
             @Override
             public void onData(String data) {

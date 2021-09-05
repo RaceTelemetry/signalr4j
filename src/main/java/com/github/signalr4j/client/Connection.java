@@ -6,85 +6,81 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-
+import com.github.signalr4j.client.http.Request;
+import com.github.signalr4j.client.transport.*;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
-import com.github.signalr4j.client.http.Request;
-import com.github.signalr4j.client.transport.AutomaticTransport;
-import com.github.signalr4j.client.transport.ClientTransport;
-import com.github.signalr4j.client.transport.ConnectionType;
-import com.github.signalr4j.client.transport.DataResultCallback;
-import com.github.signalr4j.client.transport.NegotiationResponse;
-import com.github.signalr4j.client.transport.TransportHelper;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Represents a basic SingalR connection
  */
 public class Connection implements ConnectionBase {
 
-    public static final Version PROTOCOL_VERSION = new Version("1.3");
+    public static final Version PROTOCOL_VERSION = new Version("1.5");
 
-    private Logger mLogger;
+    private final Logger logger;
 
-    private String mUrl;
+    private final String url;
 
-    private String mConnectionToken;
+    private String connectionToken;
 
-    private String mConnectionId;
+    private String connectionId;
 
-    private String mMessageId;
+    private String messageId;
 
-    private String mGroupsToken;
+    private String groupsToken;
 
-    private Credentials mCredentials;
+    private Credentials credentials;
 
-    private String mQueryString;
+    private final String queryString;
 
-    private Map<String, String> mHeaders = new HashMap<String, String>();
+    private final Map<String, String> headers = new HashMap<>();
 
-    private UpdateableCancellableFuture<Void> mConnectionFuture;
+    private UpdateableCancellableFuture<Void> connectionFuture;
 
-    private boolean mAborting = false;
+    private boolean aborting = false;
 
-    private SignalRFuture<Void> mAbortFuture = new SignalRFuture<Void>();
+    private SignalRFuture<Void> abortFuture = new SignalRFuture<>();
 
-    private Runnable mOnReconnecting;
+    private Runnable onReconnecting;
 
-    private Runnable mOnReconnected;
+    private Runnable onReconnected;
 
-    private Runnable mOnConnected;
+    private Runnable onConnected;
 
-    private MessageReceivedHandler mOnReceived;
+    private MessageReceivedHandler onReceived;
 
-    private ErrorCallback mOnError;
+    private ErrorCallback onError;
 
-    private Runnable mOnConnectionSlow;
+    private Runnable onConnectionSlow;
 
-    private Runnable mOnClosed;
+    private Runnable onClosed;
 
-    private StateChangedCallback mOnStateChanged;
+    private StateChangedCallback onStateChanged;
 
-    private ClientTransport mTransport;
+    private ClientTransport transport;
 
-    private HeartbeatMonitor mHeartbeatMonitor;
+    private HeartbeatMonitor heartbeatMonitor;
 
-    private KeepAliveData mKeepAliveData;
+    private KeepAliveData keepAliveData;
 
-    protected ConnectionState mState;
+    protected ConnectionState state;
 
-    protected JsonParser mJsonParser;
+    protected JsonParser jsonParser;
 
-    protected Gson mGson;
+    protected Gson gson;
 
-    private Object mStateLock = new Object();
+    private final Object stateLock = new Object();
 
-    private Object mStartLock = new Object();
+    private final Object startLock = new Object();
 
     private boolean reconnectOnError = true;
 
@@ -145,58 +141,58 @@ public class Connection implements ConnectionBase {
             url += "/";
         }
 
-        log("Initialize the connection", LogLevel.Information);
-        log("Connection data: " + url + " - " + queryString == null ? "" : queryString, LogLevel.Verbose);
+        log("Initialize the connection", LogLevel.INFORMATION);
+        log("Connection data: " + url + " - " + (queryString == null ? "" : queryString), LogLevel.VERBOSE);
 
-        mUrl = url;
-        mQueryString = queryString;
-        mLogger = logger;
-        mJsonParser = new JsonParser();
+        this.url = url;
+        this.queryString = queryString;
+        this.logger = logger;
+        jsonParser = new JsonParser();
 
         GsonBuilder gsonBuilder = new GsonBuilder();
         gsonBuilder.registerTypeAdapter(Date.class, new DateSerializer());
-        mGson = gsonBuilder.create();
-        mState = ConnectionState.Disconnected;
+        gson = gsonBuilder.create();
+        state = ConnectionState.DISCONNECTED;
     }
 
     @Override
     public Logger getLogger() {
-        return mLogger;
+        return logger;
     }
 
     @Override
     public ConnectionState getState() {
-        return mState;
+        return state;
     }
 
     @Override
     public String getUrl() {
-        return mUrl;
+        return url;
     }
 
     @Override
     public String getConnectionToken() {
-        return mConnectionToken;
+        return connectionToken;
     }
 
     @Override
     public String getConnectionId() {
-        return mConnectionId;
+        return connectionId;
     }
 
     @Override
     public String getQueryString() {
-        return mQueryString;
+        return queryString;
     }
 
     @Override
     public String getMessageId() {
-        return mMessageId;
+        return messageId;
     }
 
     @Override
     public void setMessageId(String messageId) {
-        mMessageId = messageId;
+        this.messageId = messageId;
     }
 
     @Override
@@ -206,62 +202,62 @@ public class Connection implements ConnectionBase {
 
     @Override
     public String getGroupsToken() {
-        return mGroupsToken;
+        return groupsToken;
     }
 
     @Override
     public void setGroupsToken(String groupsToken) {
-        mGroupsToken = groupsToken;
+        this.groupsToken = groupsToken;
     }
     
     @Override
     public void addHeader(String headerName, String headerValue) {
-        mHeaders.put(headerName, headerValue);
+        headers.put(headerName, headerValue);
     }
 
     @Override
     public Map<String, String> getHeaders() {
-        return mHeaders;
+        return headers;
     }
 
     @Override
     public void reconnecting(Runnable handler) {
-        mOnReconnecting = handler;
+        onReconnecting = handler;
     }
 
     @Override
     public void reconnected(Runnable handler) {
-        mOnReconnected = handler;
+        onReconnected = handler;
     }
 
     @Override
     public void connected(Runnable handler) {
-        mOnConnected = handler;
+        onConnected = handler;
     }
 
     @Override
     public void error(ErrorCallback handler) {
-        mOnError = handler;
+        onError = handler;
     }
 
     @Override
     public void received(MessageReceivedHandler handler) {
-        mOnReceived = handler;
+        onReceived = handler;
     }
 
     @Override
     public void connectionSlow(Runnable handler) {
-        mOnConnectionSlow = handler;
+        onConnectionSlow = handler;
     }
 
     @Override
     public void closed(Runnable handler) {
-        mOnClosed = handler;
+        onClosed = handler;
     }
 
     @Override
     public void stateChanged(StateChangedCallback handler) {
-        mOnStateChanged = handler;
+        onStateChanged = handler;
     }
 
     /**
@@ -270,7 +266,7 @@ public class Connection implements ConnectionBase {
      * @return A Future for the operation
      */
     public SignalRFuture<Void> start() {
-        return start(new AutomaticTransport(mLogger));
+        return start(new AutomaticTransport(logger));
     }
 
     /**
@@ -288,7 +284,7 @@ public class Connection implements ConnectionBase {
             if (object instanceof JsonElement) {
                 data = object.toString();
             } else {
-                data = mGson.toJson(object);
+                data = gson.toJson(object);
             }
         }
 
@@ -297,23 +293,17 @@ public class Connection implements ConnectionBase {
 
     @Override
     public SignalRFuture<Void> send(String data) {
-        log("Sending: " + data, LogLevel.Information);
+        log("Sending: " + data, LogLevel.INFORMATION);
 
-        if (mState == ConnectionState.Disconnected || mState == ConnectionState.Connecting) {
-            onError(new InvalidStateException(mState), false);
-            return new SignalRFuture<Void>();
+        if (state == ConnectionState.DISCONNECTED || state == ConnectionState.CONNECTING) {
+            onError(new InvalidStateException(state), false);
+            return new SignalRFuture<>();
         }
 
         final Connection that = this;
 
-        log("Invoking send on transport", LogLevel.Verbose);
-        SignalRFuture<Void> future = mTransport.send(this, data, new DataResultCallback() {
-
-            @Override
-            public void onData(String data) {
-                that.processReceivedData(data);
-            }
-        });
+        log("Invoking send on transport", LogLevel.VERBOSE);
+        SignalRFuture<Void> future = transport.send(this, data, that::processReceivedData);
 
         handleFutureError(future, false);
         return future;
@@ -330,77 +320,61 @@ public class Connection implements ConnectionBase {
     private void handleFutureError(SignalRFuture<?> future, final boolean mustCleanCurrentConnection) {
         final Connection that = this;
 
-        future.onError(new ErrorCallback() {
-
-            @Override
-            public void onError(Throwable error) {
-                that.onError(error, mustCleanCurrentConnection);
-            }
-        });
+        future.onError(error -> that.onError(error, mustCleanCurrentConnection));
     }
 
     @Override
     public SignalRFuture<Void> start(final ClientTransport transport) {
-        synchronized (mStartLock) {
-            log("Entered startLock in start", LogLevel.Verbose);
-            if (!changeState(ConnectionState.Disconnected, ConnectionState.Connecting)) {
-                log("Couldn't change state from disconnected to connecting.", LogLevel.Verbose);
-                return mConnectionFuture;
+        synchronized (startLock) {
+            log("Entered startLock in start", LogLevel.VERBOSE);
+            if (!changeState(ConnectionState.DISCONNECTED, ConnectionState.CONNECTING)) {
+                log("Couldn't change state from disconnected to connecting.", LogLevel.VERBOSE);
+                return connectionFuture;
             }
 
-            log("Start the connection, using " + transport.getName() + " transport", LogLevel.Information);
+            log("Start the connection, using " + transport.getName() + " transport", LogLevel.INFORMATION);
 
-            mTransport = transport;
-            mConnectionFuture = new UpdateableCancellableFuture<Void>(null);
-            handleFutureError(mConnectionFuture, true);
+            this.transport = transport;
+            connectionFuture = new UpdateableCancellableFuture<>(null);
+            handleFutureError(connectionFuture, true);
 
-            log("Start negotiation", LogLevel.Verbose);
+            log("Start negotiation", LogLevel.VERBOSE);
             SignalRFuture<NegotiationResponse> negotiationFuture = transport.negotiate(this);
 
             try {
-                negotiationFuture.done(new Action<NegotiationResponse>() {
-
-                    @Override
-                    public void run(NegotiationResponse negotiationResponse) throws Exception {
-                        log("Negotiation completed", LogLevel.Information);
-                        if (!verifyProtocolVersion(negotiationResponse.getProtocolVersion())) {
-                            Exception err = new InvalidProtocolVersionException(negotiationResponse.getProtocolVersion()); 
-                            onError(err, true);
-                            mConnectionFuture.triggerError(err);
-                            return;
-                        }
-
-                        mConnectionId = negotiationResponse.getConnectionId();
-                        mConnectionToken = negotiationResponse.getConnectionToken();
-                        log("ConnectionId: " + mConnectionId, LogLevel.Verbose);
-                        log("ConnectionToken: " + mConnectionToken, LogLevel.Verbose);
-
-                        KeepAliveData keepAliveData = null;
-                        if (negotiationResponse.getKeepAliveTimeout() > 0) {
-                            log("Keep alive timeout: " + negotiationResponse.getKeepAliveTimeout(), LogLevel.Verbose);
-                            keepAliveData = new KeepAliveData((long) (negotiationResponse.getKeepAliveTimeout() * 1000));
-                        }
-
-                        startTransport(keepAliveData, false);
+                negotiationFuture.done(negotiationResponse -> {
+                    log("Negotiation completed", LogLevel.INFORMATION);
+                    if (!verifyProtocolVersion(negotiationResponse.getProtocolVersion())) {
+                        Exception err = new InvalidProtocolVersionException(negotiationResponse.getProtocolVersion());
+                        onError(err, true);
+                        connectionFuture.triggerError(err);
+                        return;
                     }
-                });
-                
-                negotiationFuture.onError(new ErrorCallback() {
-                    
-                    @Override
-                    public void onError(Throwable error) {
-                        mConnectionFuture.triggerError(error);
+
+                    connectionId = negotiationResponse.getConnectionId();
+                    connectionToken = negotiationResponse.getConnectionToken();
+                    log("ConnectionId: " + connectionId, LogLevel.VERBOSE);
+                    log("ConnectionToken: " + connectionToken, LogLevel.VERBOSE);
+
+                    KeepAliveData keepAliveData = null;
+                    if (negotiationResponse.getKeepAliveTimeout() > 0) {
+                        log("Keep alive timeout: " + negotiationResponse.getKeepAliveTimeout(), LogLevel.VERBOSE);
+                        keepAliveData = new KeepAliveData((long) (negotiationResponse.getKeepAliveTimeout() * 1000));
                     }
+
+                    startTransport(keepAliveData, false);
                 });
+
+                negotiationFuture.onError(error -> connectionFuture.triggerError(error));
                 
             } catch (Exception e) {
                 onError(e, true);
             }
 
             handleFutureError(negotiationFuture, true);
-            mConnectionFuture.setFuture(negotiationFuture);
+            connectionFuture.setFuture(negotiationFuture);
 
-            return mConnectionFuture;
+            return connectionFuture;
         }
     }
 
@@ -414,12 +388,12 @@ public class Connection implements ConnectionBase {
      * @return True, if the state was changed
      */
     private boolean changeState(ConnectionState oldState, ConnectionState newState) {
-        synchronized (mStateLock) {
-            if (mState == oldState) {
-                mState = newState;
-                if (mOnStateChanged != null) {
+        synchronized (stateLock) {
+            if (state == oldState) {
+                state = newState;
+                if (onStateChanged != null) {
                     try {
-                        mOnStateChanged.stateChanged(oldState, newState);
+                        onStateChanged.stateChanged(oldState, newState);
                     } catch (Throwable e) {
                         onError(e, false);
                     }
@@ -433,19 +407,19 @@ public class Connection implements ConnectionBase {
 
     @Override
     public Credentials getCredentials() {
-        return mCredentials;
+        return credentials;
     }
 
     @Override
     public void setCredentials(Credentials credentials) {
-        mCredentials = credentials;
+        this.credentials = credentials;
     }
 
     @Override
     public void prepareRequest(Request request) {
-        if (mCredentials != null) {
-            log("Preparing request with credentials data", LogLevel.Information);
-            mCredentials.prepareRequest(request);
+        if (credentials != null) {
+            log("Preparing request with credentials data", LogLevel.INFORMATION);
+            credentials.prepareRequest(request);
         }
     }
 
@@ -456,57 +430,45 @@ public class Connection implements ConnectionBase {
 
     @Override
     public void stop() {
-        synchronized (mStartLock) {
-            log("Entered startLock in stop", LogLevel.Verbose);
-            if (mAborting) {
-                log("Abort already started.", LogLevel.Verbose);
+        synchronized (startLock) {
+            log("Entered startLock in stop", LogLevel.VERBOSE);
+            if (aborting) {
+                log("Abort already started.", LogLevel.VERBOSE);
                 return;
             }
 
-            if (mState == ConnectionState.Disconnected) {
-                log("Connection already in disconnected state. Exiting abort", LogLevel.Verbose);
+            if (state == ConnectionState.DISCONNECTED) {
+                log("Connection already in disconnected state. Exiting abort", LogLevel.VERBOSE);
                 return;
             }
 
-            log("Stopping the connection", LogLevel.Information);
-            mAborting = true;
+            log("Stopping the connection", LogLevel.INFORMATION);
+            aborting = true;
 
-            log("Starting abort operation", LogLevel.Verbose);
-            mAbortFuture = mTransport.abort(this);
+            log("Starting abort operation", LogLevel.VERBOSE);
+            abortFuture = transport.abort(this);
 
             final Connection that = this;
-            mAbortFuture.onError(new ErrorCallback() {
-
-                @Override
-                public void onError(Throwable error) {
-                    synchronized (mStartLock) {
-                        that.onError(error, false);
-                        disconnect();
-                        mAborting = false;
-                    }
+            abortFuture.onError(error -> {
+                synchronized (startLock) {
+                    that.onError(error, false);
+                    disconnect();
+                    aborting = false;
                 }
             });
 
-            mAbortFuture.onCancelled(new Runnable() {
-
-                @Override
-                public void run() {
-                    synchronized (mStartLock) {
-                        log("Abort cancelled", LogLevel.Verbose);
-                        mAborting = false;
-                    }
+            abortFuture.onCancelled(() -> {
+                synchronized (startLock) {
+                    log("Abort cancelled", LogLevel.VERBOSE);
+                    aborting = false;
                 }
             });
 
-            mAbortFuture.done(new Action<Void>() {
-
-                @Override
-                public void run(Void obj) throws Exception {
-                    synchronized (mStartLock) {
-                        log("Abort completed", LogLevel.Information);
-                        disconnect();
-                        mAborting = false;
-                    }
+            abortFuture.done(obj -> {
+                synchronized (startLock) {
+                    log("Abort completed", LogLevel.INFORMATION);
+                    disconnect();
+                    aborting = false;
                 }
             });
         }
@@ -514,49 +476,49 @@ public class Connection implements ConnectionBase {
 
     @Override
     public void disconnect() {
-        synchronized (mStateLock) {
-            log("Entered stateLock in disconnect", LogLevel.Verbose);
+        synchronized (stateLock) {
+            log("Entered stateLock in disconnect", LogLevel.VERBOSE);
 
-            if (mState == ConnectionState.Disconnected) {
+            if (state == ConnectionState.DISCONNECTED) {
                 return;
             }
 
-            log("Disconnecting", LogLevel.Information);
-            ConnectionState oldState = mState;
-            mState = ConnectionState.Disconnected;
-            if (mOnStateChanged != null) {
+            log("Disconnecting", LogLevel.INFORMATION);
+            ConnectionState oldState = state;
+            state = ConnectionState.DISCONNECTED;
+            if (onStateChanged != null) {
                 try {
-                    mOnStateChanged.stateChanged(oldState, ConnectionState.Disconnected);
+                    onStateChanged.stateChanged(oldState, ConnectionState.DISCONNECTED);
                 } catch (Throwable e) {
                     onError(e, false);
                 }
             }
-            
-            if (mHeartbeatMonitor != null) {
-                log("Stopping Heartbeat monitor", LogLevel.Verbose);
-                mHeartbeatMonitor.stop();
+
+            if (heartbeatMonitor != null) {
+                log("Stopping Heartbeat monitor", LogLevel.VERBOSE);
+                heartbeatMonitor.stop();
             }
 
-            mHeartbeatMonitor = null;
+            heartbeatMonitor = null;
 
-            if (mConnectionFuture != null) {
-                log("Stopping the connection", LogLevel.Verbose);
-                mConnectionFuture.cancel();
-                mConnectionFuture = new UpdateableCancellableFuture<Void>(null);
+            if (connectionFuture != null) {
+                log("Stopping the connection", LogLevel.VERBOSE);
+                connectionFuture.cancel();
+                connectionFuture = new UpdateableCancellableFuture<>(null);
             }
 
-            if (mAbortFuture != null) {
-                log("Cancelling abort", LogLevel.Verbose);
-                mAbortFuture.cancel();
+            if (abortFuture != null) {
+                log("Cancelling abort", LogLevel.VERBOSE);
+                abortFuture.cancel();
             }
 
-            mConnectionId = null;
-            mConnectionToken = null;
-            mCredentials = null;
-            mGroupsToken = null;
-            mHeaders.clear();
-            mMessageId = null;
-            mTransport = null;
+            connectionId = null;
+            connectionToken = null;
+            credentials = null;
+            groupsToken = null;
+            headers.clear();
+            messageId = null;
+            transport = null;
 
         }
         onClosed();
@@ -564,27 +526,27 @@ public class Connection implements ConnectionBase {
 
     @Override
     public Gson getGson() {
-        return mGson;
+        return gson;
     }
 
     @Override
     public void setGson(Gson gson) {
-        mGson = gson;
+        this.gson = gson;
     }
 
     @Override
     public JsonParser getJsonParser() {
-        return mJsonParser;
+        return jsonParser;
     }
 
     /**
      * Triggers the Reconnecting event
      */
     protected void onReconnecting() {
-        changeState(ConnectionState.Connected, ConnectionState.Reconnecting);
+        changeState(ConnectionState.CONNECTED, ConnectionState.RECONNECTING);
 
-        if (mOnReconnecting != null) {
-            mOnReconnecting.run();
+        if (onReconnecting != null) {
+            onReconnecting.run();
         }
     }
 
@@ -592,8 +554,8 @@ public class Connection implements ConnectionBase {
      * Triggers the Reconnected event
      */
     protected void onReconnected() {
-        if (mOnReconnected != null) {
-            mOnReconnected.run();
+        if (onReconnected != null) {
+            onReconnected.run();
         }
     }
 
@@ -601,8 +563,8 @@ public class Connection implements ConnectionBase {
      * Triggers the Connected event
      */
     protected void onConnected() {
-        if (mOnConnected != null) {
-            mOnConnected.run();
+        if (onConnected != null) {
+            onConnected.run();
         }
     }
 
@@ -637,102 +599,81 @@ public class Connection implements ConnectionBase {
      *            True if is reconnecting
      */
     private void startTransport(KeepAliveData keepAliveData, final boolean isReconnecting) {
-        synchronized (mStartLock) {
-            log("Entered startLock in startTransport", LogLevel.Verbose);
+        synchronized (startLock) {
+            log("Entered startLock in startTransport", LogLevel.VERBOSE);
             // if the connection was closed before this callback, just return;
-            if (mTransport == null) {
-                log("Transport is null. Exiting startTransport", LogLevel.Verbose);
+            if (transport == null) {
+                log("Transport is null. Exiting startTransport", LogLevel.VERBOSE);
                 return;
             }
 
-            log("Starting the transport", LogLevel.Information);
+            log("Starting the transport", LogLevel.INFORMATION);
             if (isReconnecting) {
-                if (mHeartbeatMonitor != null) {
-                    log("Stopping heartbeat monitor", LogLevel.Verbose);
-                    mHeartbeatMonitor.stop();
+                if (heartbeatMonitor != null) {
+                    log("Stopping heartbeat monitor", LogLevel.VERBOSE);
+                    heartbeatMonitor.stop();
                 }
 
-                mTransport.abort(this);
+                transport.abort(this);
 
                 onReconnecting();
             }
 
-            mHeartbeatMonitor = new HeartbeatMonitor();
+            heartbeatMonitor = new HeartbeatMonitor();
 
-            mHeartbeatMonitor.setOnWarning(new Runnable() {
-
-                @Override
-                public void run() {
-                    log("Slow connection detected", LogLevel.Information);
-                    if (mOnConnectionSlow != null) {
-                        mOnConnectionSlow.run();
-                    }
+            heartbeatMonitor.setOnWarning(() -> {
+                log("Slow connection detected", LogLevel.INFORMATION);
+                if (onConnectionSlow != null) {
+                    onConnectionSlow.run();
                 }
             });
 
-            mHeartbeatMonitor.setOnTimeout(new Runnable() {
-
-                @Override
-                public void run() {
-                    log("Timeout", LogLevel.Information);
-                    if(reconnectOnError)
-                        reconnect();
-                    else
-                        disconnect();
-                }
+            heartbeatMonitor.setOnTimeout(() -> {
+                log("Timeout", LogLevel.INFORMATION);
+                if (reconnectOnError)
+                    reconnect();
+                else
+                    disconnect();
             });
 
             final Connection that = this;
 
-            ConnectionType connectionType = isReconnecting ? ConnectionType.Reconnection : ConnectionType.InitialConnection;
+            ConnectionType connectionType = isReconnecting ? ConnectionType.RECONNECTION : ConnectionType.INITIAL_CONNECTION;
 
-            log("Starting transport for " + connectionType.toString(), LogLevel.Verbose);
-            SignalRFuture<Void> future = mTransport.start(this, connectionType, new DataResultCallback() {
-                @Override
-                public void onData(String data) {
-                    log("Received data: ", LogLevel.Verbose);
-                    processReceivedData(data);
-                }
+            log("Starting transport for " + connectionType, LogLevel.VERBOSE);
+            SignalRFuture<Void> future = transport.start(this, connectionType, data -> {
+                log("Received data: ", LogLevel.VERBOSE);
+                processReceivedData(data);
             });
 
             handleFutureError(future, true);
 
-            mConnectionFuture.setFuture(future);
-            future.onError(new ErrorCallback() {
-                
-                @Override
-                public void onError(Throwable error) {
-                    mConnectionFuture.triggerError(error);
-                }
-            });
-            
-            mKeepAliveData = keepAliveData;
+            connectionFuture.setFuture(future);
+            future.onError(error -> connectionFuture.triggerError(error));
+
+            this.keepAliveData = keepAliveData;
 
             try {
-                future.done(new Action<Void>() {
+                future.done(obj -> {
+                    synchronized (startLock) {
+                        log("Entered startLock after transport was started", LogLevel.VERBOSE);
+                        log("Current state: " + state, LogLevel.VERBOSE);
+                        if (changeState(ConnectionState.RECONNECTING, ConnectionState.CONNECTED)) {
 
-                    @Override
-                    public void run(Void obj) throws Exception {
-                        synchronized (mStartLock) {
-                            log("Entered startLock after transport was started", LogLevel.Verbose);
-                            log("Current state: " + mState, LogLevel.Verbose);
-                            if (changeState(ConnectionState.Reconnecting, ConnectionState.Connected)) {
+                            log("Starting Heartbeat monitor", LogLevel.VERBOSE);
+                            heartbeatMonitor.start(this.keepAliveData, that);
 
-                                log("Starting Heartbeat monitor", LogLevel.Verbose);
-                                mHeartbeatMonitor.start(mKeepAliveData, that);
-                                
-                                log("Reconnected", LogLevel.Information);
-                                onReconnected();
+                            log("Reconnected", LogLevel.INFORMATION);
+                            onReconnected();
 
-                            } else if (changeState(ConnectionState.Connecting, ConnectionState.Connected)) {
+                        } else if (changeState(ConnectionState.CONNECTING, ConnectionState.CONNECTED)) {
 
-                                log("Starting Heartbeat monitor", LogLevel.Verbose);
-                                mHeartbeatMonitor.start(mKeepAliveData, that);
-                                
-                                log("Connected", LogLevel.Information);
-                                onConnected();
-                                mConnectionFuture.setResult(null);
-                            }
+                            log("Starting Heartbeat monitor", LogLevel.VERBOSE);
+                            heartbeatMonitor.start(this.keepAliveData, that);
+
+                            log("Connected", LogLevel.INFORMATION);
+                            onConnected();
+                            connectionFuture.setResult(null);
                         }
                     }
                 });
@@ -749,8 +690,8 @@ public class Connection implements ConnectionBase {
      *            The received data
      */
     private void processReceivedData(String data) {
-        if (mHeartbeatMonitor != null) {
-            mHeartbeatMonitor.beat();
+        if (heartbeatMonitor != null) {
+            heartbeatMonitor.beat();
         }
 
         MessageResult result = TransportHelper.processReceivedData(data, this);
@@ -786,19 +727,19 @@ public class Connection implements ConnectionBase {
             log(error);
 
         if (mustCleanCurrentConnection) {
-            if ( (mState == ConnectionState.Connected || mState == ConnectionState.Reconnecting) && reconnectOnError) {
-                log("Triggering reconnect", LogLevel.Verbose);
+            if ((state == ConnectionState.CONNECTED || state == ConnectionState.RECONNECTING) && reconnectOnError) {
+                log("Triggering reconnect", LogLevel.VERBOSE);
                 reconnect();
             } else {
-                log("Triggering disconnect", LogLevel.Verbose);
-                if (mOnError != null) {
-                    mOnError.onError(error);
+                log("Triggering disconnect", LogLevel.VERBOSE);
+                if (onError != null) {
+                    onError.onError(error);
                 }
                 disconnect();
             }
         } else {
-            if (mOnError != null) {
-                mOnError.onError(error);
+            if (onError != null) {
+                onError.onError(error);
             }
         }
     }
@@ -807,8 +748,8 @@ public class Connection implements ConnectionBase {
      * Triggers the Closed event
      */
     protected void onClosed() {
-        if (mOnClosed != null) {
-            mOnClosed.run();
+        if (onClosed != null) {
+            onClosed.run();
         }
     }
 
@@ -816,29 +757,32 @@ public class Connection implements ConnectionBase {
      * Stops the heartbeat monitor and re-starts the transport
      */
     private void reconnect() {
-        if (mState == ConnectionState.Connected || mState == ConnectionState.Reconnecting) {
-            log("Stopping Heartbeat monitor", LogLevel.Verbose);
-            mHeartbeatMonitor.stop();
-            log("Restarting the transport", LogLevel.Information);
-            
+        if (state == ConnectionState.CONNECTED || state == ConnectionState.RECONNECTING) {
+            log("Stopping Heartbeat monitor", LogLevel.VERBOSE);
+            heartbeatMonitor.stop();
+            log("Restarting the transport", LogLevel.INFORMATION);
+
             // if it is reconnecting and the connection cannot yet be established
             // therefore the mHeartbeatMonitor instance wouldn't be initialized with the KeepAliveData value
-            KeepAliveData keepAliveData = mHeartbeatMonitor.getKeepAliveData();
-            if (keepAliveData == null && mKeepAliveData != null)
-                keepAliveData = mKeepAliveData;
+            KeepAliveData keepAliveData = heartbeatMonitor.getKeepAliveData();
+            if (keepAliveData == null && this.keepAliveData != null)
+                keepAliveData = this.keepAliveData;
 
             startTransport(keepAliveData, true);
         }
     }
 
     protected void log(String message, LogLevel level) {
-        if (message != null & mLogger != null) {
-            mLogger.log(getSourceNameForLog() + " - " + message, level);
+        if (message != null & logger != null) {
+            logger.log(getSourceNameForLog() + " - " + message, level);
         }
     }
 
     protected void log(Throwable error) {
-        mLogger.log(getSourceNameForLog() + " - Error: " + error.toString(), LogLevel.Critical);
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        error.printStackTrace(pw);
+        logger.log(getSourceNameForLog() + " - Error: \n" + sw, LogLevel.CRITICAL);
     }
 
     protected String getSourceNameForLog() {
@@ -847,10 +791,10 @@ public class Connection implements ConnectionBase {
 
     @Override
     public void onReceived(JsonElement message) {
-        if (mOnReceived != null && getState() == ConnectionState.Connected) {
-            log("Invoking messageReceived with: " + message, LogLevel.Verbose);
+        if (onReceived != null && getState() == ConnectionState.CONNECTED) {
+            log("Invoking messageReceived with: " + message, LogLevel.VERBOSE);
             try {
-                mOnReceived.onMessageReceived(message);
+                onReceived.onMessageReceived(message);
             } catch (Throwable error) {
                 onError(error, false);
             }

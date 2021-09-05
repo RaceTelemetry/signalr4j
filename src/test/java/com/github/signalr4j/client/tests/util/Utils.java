@@ -6,10 +6,6 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.tests.util;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.UUID;
-
 import com.github.signalr4j.client.*;
 import com.github.signalr4j.client.http.HttpConnection;
 import com.github.signalr4j.client.transport.ClientTransport;
@@ -18,6 +14,10 @@ import com.github.signalr4j.client.transport.NegotiationResponse;
 import com.github.signalr4j.client.transport.ServerSentEventsTransport;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.UUID;
 
 public class Utils {
 
@@ -65,7 +65,7 @@ public class Utils {
 
             @Override
             public void run() {
-                result.statesResult.add(ConnectionState.Connected);
+                result.statesResult.add(ConnectionState.CONNECTED);
             }
         });
 
@@ -73,7 +73,7 @@ public class Utils {
 
             @Override
             public void run() {
-                result.statesResult.add(ConnectionState.Disconnected);
+                result.statesResult.add(ConnectionState.DISCONNECTED);
             }
         });
 
@@ -81,7 +81,7 @@ public class Utils {
 
             @Override
             public void run() {
-                result.statesResult.add(ConnectionState.Connected);
+                result.statesResult.add(ConnectionState.CONNECTED);
             }
         });
 
@@ -89,7 +89,7 @@ public class Utils {
 
             @Override
             public void run() {
-                result.statesResult.add(ConnectionState.Reconnecting);
+                result.statesResult.add(ConnectionState.RECONNECTING);
             }
         });
 

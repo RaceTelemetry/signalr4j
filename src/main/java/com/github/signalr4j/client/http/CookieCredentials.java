@@ -6,14 +6,14 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.http;
 
+import com.github.signalr4j.client.Constants;
+import com.github.signalr4j.client.Credentials;
+
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
-
-import com.github.signalr4j.client.Constants;
-import com.github.signalr4j.client.Credentials;
 
 /**
  * Represents credentials based on cookie values
@@ -98,7 +98,7 @@ public class CookieCredentials implements Credentials {
                     sb.append("=");
                     sb.append(URLEncoder.encode(mCookieValues.get(key), Constants.UTF8_NAME));
                     sb.append(";");
-                } catch (UnsupportedEncodingException e) {
+                } catch (UnsupportedEncodingException ignored) {
                 }
             }
 

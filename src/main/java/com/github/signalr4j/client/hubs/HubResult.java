@@ -6,78 +6,79 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.hubs;
 
+import com.google.gson.JsonElement;
+import com.google.gson.annotations.SerializedName;
+
 import java.util.Locale;
 import java.util.Map;
-
-import com.google.gson.JsonElement;
 
 /**
  * Represents the result of a hub operation
  */
 public class HubResult {
-    @com.google.gson.annotations.SerializedName("I")
-    private String mId;
+    @SerializedName("I")
+    private String id;
 
-    @com.google.gson.annotations.SerializedName("R")
-    private JsonElement mResult;
+    @SerializedName("R")
+    private JsonElement result;
 
-    @com.google.gson.annotations.SerializedName("H")
-    private boolean mIsHubException;
+    @SerializedName("H")
+    private boolean isHubException;
 
-    @com.google.gson.annotations.SerializedName("E")
-    private String mError;
+    @SerializedName("E")
+    private String error;
 
-    @com.google.gson.annotations.SerializedName("D")
-    private Object mErrorData;
+    @SerializedName("D")
+    private Object errorData;
 
-    @com.google.gson.annotations.SerializedName("S")
-    private Map<String, JsonElement> mState;
+    @SerializedName("S")
+    private Map<String, JsonElement> state;
 
     public String getId() {
-        return mId == null ? null : mId.toLowerCase(Locale.getDefault());
+        return id == null ? null : id.toLowerCase(Locale.getDefault());
     }
 
     public void setId(String id) {
-        mId = id;
+        this.id = id;
     }
 
     public JsonElement getResult() {
-        return mResult;
+        return result;
     }
 
     public void setResult(JsonElement result) {
-        mResult = result;
+        this.result = result;
     }
 
     public boolean isHubException() {
-        return mIsHubException;
+        return isHubException;
     }
 
     public void setIsHubException(boolean isHubException) {
-        mIsHubException = isHubException;
+        this.isHubException = isHubException;
     }
 
     public String getError() {
-        return mError;
+        return error;
     }
 
     public void setError(String error) {
-        mError = error;
+        this.error = error;
     }
 
     public Object getErrorData() {
-        return mErrorData;
+        return errorData;
     }
 
     public void setErrorData(Object errorData) {
-        mErrorData = errorData;
+        this.errorData = errorData;
     }
 
     public Map<String, JsonElement> getState() {
-        return mState;
+        return state;
     }
 
     public void setState(Map<String, JsonElement> state) {
-        mState = state;
+        this.state = state;
     }
 }

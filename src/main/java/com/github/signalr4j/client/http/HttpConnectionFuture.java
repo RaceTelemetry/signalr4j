@@ -6,34 +6,33 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.http;
 
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
 import com.github.signalr4j.client.ErrorCallback;
 import com.github.signalr4j.client.SignalRFuture;
+
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * A SinglaRFuture for Http operations
  */
 public class HttpConnectionFuture extends SignalRFuture<Void> {
 
-    private Queue<Throwable> mTimeoutQueue = new ConcurrentLinkedQueue<Throwable>();
-    private ErrorCallback mTimeoutCallback;
-    private Object mTimeoutLock = new Object();
+    private final Queue<Throwable> timeoutQueue = new ConcurrentLinkedQueue<>();
+    private ErrorCallback timeoutCallback;
+    private final Object timeoutLock = new Object();
 
     /**
      * Handles the timeout for an Http operation
-     * 
-     * @param errorCallback
-     *            The handler
+     *
+     * @param errorCallback The handler
      */
     public void onTimeout(ErrorCallback errorCallback) {
-        synchronized (mTimeoutLock) {
-            mTimeoutCallback = errorCallback;
+        synchronized (timeoutLock) {
+            timeoutCallback = errorCallback;
 
-            while (!mTimeoutQueue.isEmpty()) {
-                if (mTimeoutCallback != null) {
-                    mTimeoutCallback.onError(mTimeoutQueue.poll());
+            while (!timeoutQueue.isEmpty()) {
+                if (timeoutCallback != null) {
+                    timeoutCallback.onError(timeoutQueue.poll());
                 }
             }
         }
@@ -46,11 +45,11 @@ public class HttpConnectionFuture extends SignalRFuture<Void> {
      *            The error
      */
     public void triggerTimeout(Throwable error) {
-        synchronized (mTimeoutLock) {
-            if (mTimeoutCallback != null) {
-                mTimeoutCallback.onError(error);
+        synchronized (timeoutLock) {
+            if (timeoutCallback != null) {
+                timeoutCallback.onError(error);
             } else {
-                mTimeoutQueue.add(error);
+                timeoutQueue.add(error);
             }
         }
     }

@@ -16,27 +16,27 @@ class KeepAliveData {
     /**
      * Determines when we warn the developer that the connection may be lost
      */
-    private double mKeepAliveWarnAt = 2.0 / 3.0;
+    private double keepAliveWarnAt = 2.0 / 3.0;
 
-    private long mLastKeepAlive;
+    private long lastKeepAlive;
 
     /**
      * Timeout to designate when to force the connection into reconnecting
      */
-    private long mTimeout;
+    private long timeout;
 
     /**
      * Timeout to designate when to warn the developer that the connection may
      * be dead or is hanging.
      */
 
-    private long mTimeoutWarning;
+    private long timeoutWarning;
 
     /**
      * Frequency with which we check the keep alive. It must be short in order
      * to not miss/pick up any changes
      */
-    private long mCheckInterval;
+    private long checkInterval;
 
     /**
      * Initializes the Keep Alive data
@@ -46,7 +46,7 @@ class KeepAliveData {
      */
     public KeepAliveData(long timeout) {
         setTimeout(timeout);
-        setTimeoutWarning((long) (timeout * mKeepAliveWarnAt));
+        setTimeoutWarning((long) (timeout * keepAliveWarnAt));
         setCheckInterval((timeout - getTimeoutWarning()) / 3);
         setLastKeepAlive(Calendar.getInstance().getTimeInMillis());
     }
@@ -55,55 +55,55 @@ class KeepAliveData {
      * Returns the last time the keep alive data was detected
      */
     public long getLastKeepAlive() {
-        return mLastKeepAlive;
+        return lastKeepAlive;
     }
 
     /**
      * Sets the last time the keep alive data was detected
      */
     public void setLastKeepAlive(long timeInmilliseconds) {
-        mLastKeepAlive = timeInmilliseconds;
+        lastKeepAlive = timeInmilliseconds;
     }
 
     /**
      * Returns the timeout interval
      */
     public long getTimeout() {
-        return mTimeout;
+        return timeout;
     }
 
     /**
      * Sets the timeout interval
      */
     public void setTimeout(long timeout) {
-        mTimeout = timeout;
+        this.timeout = timeout;
     }
 
     /**
      * Returns the timeout warning
      */
     public long getTimeoutWarning() {
-        return mTimeoutWarning;
+        return timeoutWarning;
     }
 
     /**
      * Sets the timeout warning
      */
     public void setTimeoutWarning(long timeoutWarning) {
-        mTimeoutWarning = timeoutWarning;
+        this.timeoutWarning = timeoutWarning;
     }
 
     /**
      * Returns the Check interval
      */
     public long getCheckInterval() {
-        return mCheckInterval;
+        return checkInterval;
     }
 
     /**
      * Sets the Check interval
      */
     public void setCheckInterval(long checkInterval) {
-        mCheckInterval = checkInterval;
+        this.checkInterval = checkInterval;
     }
 }

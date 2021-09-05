@@ -6,20 +6,12 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.transport;
 
-import java.io.IOException;
+import com.github.signalr4j.client.*;
+import com.github.signalr4j.client.http.*;
 
-import com.github.signalr4j.client.http.HttpConnectionFuture;
-import com.github.signalr4j.client.http.InvalidHttpStatusCodeException;
-import com.github.signalr4j.client.FutureHelper;
-import com.github.signalr4j.client.SignalRFuture;
-import com.github.signalr4j.client.ConnectionBase;
-import com.github.signalr4j.client.Constants;
-import com.github.signalr4j.client.LogLevel;
-import com.github.signalr4j.client.Logger;
-import com.github.signalr4j.client.Platform;
-import com.github.signalr4j.client.http.HttpConnection;
-import com.github.signalr4j.client.http.Request;
-import com.github.signalr4j.client.http.Response;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * ClientTransport base implementation over Http
@@ -27,17 +19,16 @@ import com.github.signalr4j.client.http.Response;
 public abstract class HttpClientTransport implements ClientTransport {
     protected static final int BUFFER_SIZE = 1024;
 
-    protected HttpConnection mHttpConnection;
-    protected boolean mStartedAbort = false;
-    protected SignalRFuture<Void> mAbortFuture = null;
+    protected HttpConnection httpConnection;
+    protected boolean startedAbort = false;
+    protected SignalRFuture<Void> abortFuture = null;
 
-    private Logger mLogger;
+    private final Logger logger;
 
     /**
      * Initializes the HttpClientTransport with a logger
-     * 
-     * @param logger
-     *            logger to log actions
+     *
+     * @param logger logger to log actions
      */
     public HttpClientTransport(Logger logger) {
         this(logger, Platform.createHttpConnection(logger));
@@ -48,13 +39,13 @@ public abstract class HttpClientTransport implements ClientTransport {
             throw new IllegalArgumentException("logger");
         }
 
-        mHttpConnection = httpConnection;
-        mLogger = logger;
+        this.httpConnection = httpConnection;
+        this.logger = logger;
     }
 
     @Override
     public SignalRFuture<NegotiationResponse> negotiate(final ConnectionBase connection) {
-        log("Start the negotiation with the server", LogLevel.Information);
+        log("Start the negotiation with the server", LogLevel.INFORMATION);
 
         String url = connection.getUrl() + "negotiate" + TransportHelper.getNegotiateQueryString(connection);
 
@@ -62,30 +53,34 @@ public abstract class HttpClientTransport implements ClientTransport {
         get.setUrl(url);
         get.setHeaders(connection.getHeaders());
         get.setVerb(Constants.HTTP_GET);
-        get.setHeaders(connection.getHeaders());
 
         connection.prepareRequest(get);
 
-        final SignalRFuture<NegotiationResponse> negotiationFuture = new SignalRFuture<NegotiationResponse>();
+        final SignalRFuture<NegotiationResponse> negotiationFuture = new SignalRFuture<>();
 
-        log("Execute the request", LogLevel.Verbose);
-        HttpConnectionFuture connectionFuture = mHttpConnection.execute(get, new HttpConnectionFuture.ResponseCallback() {
+        log("Execute the request", LogLevel.VERBOSE);
+        HttpConnectionFuture connectionFuture = httpConnection.execute(get, response -> {
+            try {
+                log("Response received", LogLevel.VERBOSE);
+                throwOnInvalidStatusCode(response);
+                log("Headers: " + response.getHeaders(), LogLevel.VERBOSE);
 
-            public void onResponse(Response response) {
-                try {
-                    log("Response received", LogLevel.Verbose);
-                    throwOnInvalidStatusCode(response);
+                log("Read response data to the end", LogLevel.VERBOSE);
+                String negotiationContent = response.readToEnd();
 
-                    log("Read response data to the end", LogLevel.Verbose);
-                    String negotiationContent = response.readToEnd();
+                log("Trigger onSuccess with negotiation data: " + negotiationContent, LogLevel.VERBOSE);
+                negotiationFuture.setResult(new NegotiationResponse(negotiationContent, connection.getJsonParser()));
 
-                    log("Trigger onSuccess with negotiation data: " + negotiationContent, LogLevel.Verbose);
-                    negotiationFuture.setResult(new NegotiationResponse(negotiationContent, connection.getJsonParser()));
-
-                } catch (Throwable e) {
-                    log(e);
-                    negotiationFuture.triggerError(new NegotiationException("There was a problem in the negotiation with the server", e));
+                // Set cookies, so we get sent to the right server.
+                List<String> cookies = response.getHeader("Set-Cookie");
+                if (cookies != null) {
+                    cookies = new ArrayList<>(cookies);
+                    cookies.removeIf("HttpOnly"::equals);
+                    connection.getHeaders().put("Cookie", String.join("; ", cookies));
                 }
+            } catch (Throwable e) {
+                log(e);
+                negotiationFuture.triggerError(new NegotiationException("There was a problem in the negotiation with the server", e));
             }
         });
 
@@ -97,7 +92,7 @@ public abstract class HttpClientTransport implements ClientTransport {
     @Override
     public SignalRFuture<Void> send(ConnectionBase connection, String data, final DataResultCallback callback) {
         try {
-            log("Start sending data to the server: " + data, LogLevel.Information);
+            log("Start sending data to the server: " + data, LogLevel.INFORMATION);
 
             Request post = new Request(Constants.HTTP_POST);
             post.setFormContent("data", data);
@@ -107,29 +102,24 @@ public abstract class HttpClientTransport implements ClientTransport {
 
             connection.prepareRequest(post);
 
-            log("Execute the request", LogLevel.Verbose);
-            HttpConnectionFuture future = mHttpConnection.execute(post, new HttpConnectionFuture.ResponseCallback() {
+            log("Execute the request", LogLevel.VERBOSE);
 
-                @Override
-                public void onResponse(Response response) throws Exception {
-                    log("Response received", LogLevel.Verbose);
-                    throwOnInvalidStatusCode(response);
+            return httpConnection.execute(post, response -> {
+                log("Response received", LogLevel.VERBOSE);
+                throwOnInvalidStatusCode(response);
 
-                    log("Read response to the end", LogLevel.Verbose);
-                    String data = response.readToEnd();
+                log("Read response to the end", LogLevel.VERBOSE);
+                String data1 = response.readToEnd();
 
-                    if (data != null) {
-                        log("Trigger onData with data: " + data, LogLevel.Verbose);
-                        callback.onData(data);
-                    }
+                if (data1 != null) {
+                    log("Trigger onData with data: " + data1, LogLevel.VERBOSE);
+                    callback.onData(data1);
                 }
             });
-
-            return future;
         } catch (Throwable e) {
             log(e);
 
-            SignalRFuture<Void> future = new SignalRFuture<Void>();
+            SignalRFuture<Void> future = new SignalRFuture<>();
             future.triggerError(e);
 
             return future;
@@ -139,9 +129,9 @@ public abstract class HttpClientTransport implements ClientTransport {
     @Override
     public SignalRFuture<Void> abort(ConnectionBase connection) {
         synchronized (this) {
-            if (!mStartedAbort) {
-                log("Started aborting", LogLevel.Information);
-                mStartedAbort = true;
+            if (!startedAbort) {
+                log("Started aborting", LogLevel.INFORMATION);
+                startedAbort = true;
                 try {
                     String url = connection.getUrl() + "abort" + TransportHelper.getSendQueryString(this, connection);
 
@@ -152,18 +142,18 @@ public abstract class HttpClientTransport implements ClientTransport {
 
                     connection.prepareRequest(post);
 
-                    log("Execute request", LogLevel.Verbose);
-                    mAbortFuture = mHttpConnection.execute(post, response -> {
-                        log("Finishing abort", LogLevel.Verbose);
-                        mStartedAbort = false;
+                    log("Execute request", LogLevel.VERBOSE);
+                    abortFuture = httpConnection.execute(post, response -> {
+                        log("Finishing abort", LogLevel.VERBOSE);
+                        startedAbort = false;
                     });
 
-                    return mAbortFuture;
+                    return abortFuture;
 
                 } catch (Throwable e) {
                     log(e);
-                    log("Finishing abort", LogLevel.Verbose);
-                    mStartedAbort = false;
+                    log("Finishing abort", LogLevel.VERBOSE);
+                    startedAbort = false;
 
                     SignalRFuture<Void> future = new SignalRFuture<>();
                     future.triggerError(e);
@@ -171,7 +161,7 @@ public abstract class HttpClientTransport implements ClientTransport {
                     return future;
                 }
             } else {
-                return mAbortFuture;
+                return abortFuture;
             }
         }
     }
@@ -196,7 +186,6 @@ public abstract class HttpClientTransport implements ClientTransport {
                     headersString.append(headerValue);
                     headersString.append("; ");
                 }
-                ;
                 headersString.append("]; ");
             }
 
@@ -206,11 +195,11 @@ public abstract class HttpClientTransport implements ClientTransport {
     }
 
     protected void log(String message, LogLevel level) {
-        mLogger.log(getName() + " - " + message, level);
+        logger.log(getName() + " - " + message, level);
     }
 
     protected void log(Throwable error) {
-        mLogger.log(getName() + " - Error: " + error.toString(), LogLevel.Critical);
+        logger.log(getName() + " - Error: " + error.toString(), LogLevel.CRITICAL);
     }
 
 }

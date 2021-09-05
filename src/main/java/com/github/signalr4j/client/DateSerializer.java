@@ -6,20 +6,14 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client;
 
+import com.google.gson.*;
+
 import java.lang.reflect.Type;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
-
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 
 /**
  * Date Serializer/Deserializer to make .NET and Java dates compatible
@@ -47,8 +41,7 @@ public class DateSerializer implements JsonSerializer<Date>, JsonDeserializer<Da
      */
     @Override
     public JsonElement serialize(Date date, Type type, JsonSerializationContext ctx) {
-        JsonElement element = new JsonPrimitive(serialize(date));
-        return element;
+        return new JsonPrimitive(serialize(date));
     }
 
     /**
@@ -79,18 +72,19 @@ public class DateSerializer implements JsonSerializer<Date>, JsonDeserializer<Da
             // format
             // that can be parsed in Java
 
+            String part = s.substring(s.length() - 6);
             if (s.length() > THREE_MILLISECONDS_DATE_FORMAT_LENGTH) { // yyyy-MM-ddTHH:mm:dd.SSS+00:00
                 // remove the extra milliseconds characters
-                s = s.substring(0, 23) + s.substring(s.length() - 6);
+                s = s.substring(0, 23) + part;
             } else if (s.length() < THREE_MILLISECONDS_DATE_FORMAT_LENGTH) {
                 // add extra milliseconds characters
                 int dif = (THREE_MILLISECONDS_DATE_FORMAT_LENGTH - s.length());
 
-                String zeros = "";
+                StringBuilder zeros = new StringBuilder();
                 for (int i = 0; i < dif; i++) {
-                    zeros += "0";
+                    zeros.append("0");
                 }
-                s = s.substring(0, 20 + (3 - dif)) + zeros + s.substring(s.length() - 6);
+                s = s.substring(0, 20 + (3 - dif)) + zeros + part;
             }
 
             s = s.substring(0, 26) + s.substring(27);
@@ -101,9 +95,8 @@ public class DateSerializer implements JsonSerializer<Date>, JsonDeserializer<Da
         // Parse the well-formatted date string
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'.'SSSZ");
         dateFormat.setTimeZone(TimeZone.getDefault());
-        Date date = dateFormat.parse(s);
 
-        return date;
+        return dateFormat.parse(s);
     }
 
     /**
@@ -113,9 +106,7 @@ public class DateSerializer implements JsonSerializer<Date>, JsonDeserializer<Da
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'.'SSS'Z'", Locale.getDefault());
         dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
 
-        String formatted = dateFormat.format(date);
-
-        return formatted;
+        return dateFormat.format(date);
     }
 
 }

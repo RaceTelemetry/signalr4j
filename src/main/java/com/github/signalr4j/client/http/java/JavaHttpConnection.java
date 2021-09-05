@@ -11,8 +11,8 @@ import com.github.signalr4j.client.Logger;
 import com.github.signalr4j.client.Platform;
 import com.github.signalr4j.client.http.HttpConnection;
 import com.github.signalr4j.client.http.HttpConnectionFuture;
-import com.github.signalr4j.client.http.Request;
 import com.github.signalr4j.client.http.HttpConnectionFuture.ResponseCallback;
+import com.github.signalr4j.client.http.Request;
 
 /**
  * Java HttpConnection implementation, based on HttpURLConnection and threads
@@ -44,7 +44,7 @@ public class JavaHttpConnection implements HttpConnection {
 			request.addHeader(USER_AGENT_HEADER, Platform.getUserAgent());
 		}
 
-		mLogger.log("Create new thread for HTTP Connection", LogLevel.Verbose);
+		mLogger.log("Create new thread for HTTP Connection", LogLevel.VERBOSE);
 
 		HttpConnectionFuture future = new HttpConnectionFuture();
 

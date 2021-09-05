@@ -6,19 +6,13 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.transport;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-
-import com.github.signalr4j.client.ConnectionBase;
-import com.github.signalr4j.client.Logger;
+import com.github.signalr4j.client.*;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import com.github.signalr4j.client.Connection;
-import com.github.signalr4j.client.Constants;
-import com.github.signalr4j.client.LogLevel;
-import com.github.signalr4j.client.MessageResult;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 
 public class TransportHelper {
     public static MessageResult processReceivedData(String data, ConnectionBase connection) {
@@ -35,7 +29,7 @@ public class TransportHelper {
             return result;
         }
 
-        JsonObject json = null;
+        JsonObject json;
 
         try {
             json = connection.getJsonParser().parse(data).getAsJsonObject();
@@ -49,14 +43,14 @@ public class TransportHelper {
         }
 
         if (json.get("I") != null) {
-            logger.log("Invoking message received with: " + json.toString(), LogLevel.Verbose);
+            logger.log("Invoking message received with: " + json, LogLevel.VERBOSE);
             connection.onReceived(json);
         } else {
 
             // disconnected
             if (json.get("D") != null) {
                 if (json.get("D").getAsInt() == 1) {
-                    logger.log("Disconnect message received", LogLevel.Verbose);
+                    logger.log("Disconnect message received", LogLevel.VERBOSE);
                     result.setDisconnect(true);
                     return result;
                 }
@@ -65,14 +59,14 @@ public class TransportHelper {
             // should reconnect
             if (json.get("T") != null) {
                 if (json.get("T").getAsInt() == 1) {
-                    logger.log("Reconnect message received", LogLevel.Verbose);
+                    logger.log("Reconnect message received", LogLevel.VERBOSE);
                     result.setReconnect(true);
                 }
             }
 
             if (json.get("G") != null) {
                 String groupsToken = json.get("G").getAsString();
-                logger.log("Group token received: " + groupsToken, LogLevel.Verbose);
+                logger.log("Group token received: " + groupsToken, LogLevel.VERBOSE);
                 connection.setGroupsToken(groupsToken);
             }
 
@@ -81,7 +75,7 @@ public class TransportHelper {
 
                 if (json.get("C") != null) {
                     String messageId = json.get("C").getAsString();
-                    logger.log("MessageId received: " + messageId, LogLevel.Verbose);
+                    logger.log("MessageId received: " + messageId, LogLevel.VERBOSE);
                     connection.setMessageId(messageId);
                 }
 
@@ -92,14 +86,14 @@ public class TransportHelper {
                     JsonElement message = messagesArray.get(i);
                     JsonElement processedMessage = null;
 
-                    logger.log("Invoking OnReceived with: " + processedMessage, LogLevel.Verbose);
+                    logger.log("Invoking OnReceived with: " + processedMessage, LogLevel.VERBOSE);
                     connection.onReceived(message);
                 }
             }
 
             if (json.get("S") != null) {
                 if (json.get("S").getAsInt() == 1) {
-                    logger.log("Initialization message received", LogLevel.Information);
+                    logger.log("Initialization message received", LogLevel.INFORMATION);
                     result.setInitialize(true);
                 }
             }
@@ -120,21 +114,22 @@ public class TransportHelper {
     public static String getReceiveQueryString(ClientTransport transport, ConnectionBase connection) {
         StringBuilder qsBuilder = new StringBuilder();
 
-        qsBuilder.append("?transport=" + transport.getName()).append("&connectionToken=" + urlEncode(connection.getConnectionToken()));
+        qsBuilder.append("?transport=").append(transport.getName())
+                .append("&connectionToken=").append(urlEncode(connection.getConnectionToken()));
 
-        qsBuilder.append("&connectionId=" + urlEncode(connection.getConnectionId()));
+        qsBuilder.append("&connectionId=").append(urlEncode(connection.getConnectionId()));
 
         if (connection.getMessageId() != null) {
-            qsBuilder.append("&messageId=" + urlEncode(connection.getMessageId()));
+            qsBuilder.append("&messageId=").append(urlEncode(connection.getMessageId()));
         }
 
         if (connection.getGroupsToken() != null) {
-            qsBuilder.append("&groupsToken=" + urlEncode(connection.getGroupsToken()));
+            qsBuilder.append("&groupsToken=").append(urlEncode(connection.getGroupsToken()));
         }
 
         String connectionData = connection.getConnectionData();
         if (connectionData != null) {
-            qsBuilder.append("&connectionData=" + urlEncode(connectionData));
+            qsBuilder.append("&connectionData=").append(urlEncode(connectionData));
         }
 
         String customQuery = connection.getQueryString();
@@ -155,10 +150,10 @@ public class TransportHelper {
      */
     public static String getNegotiateQueryString(ConnectionBase connection) {
         StringBuilder qsBuilder = new StringBuilder();
-        qsBuilder.append("?clientProtocol=" + urlEncode(Connection.PROTOCOL_VERSION.toString()));
+        qsBuilder.append("?clientProtocol=").append(urlEncode(Connection.PROTOCOL_VERSION.toString()));
 
         if (connection.getConnectionData() != null) {
-            qsBuilder.append("&").append("connectionData=" + urlEncode(connection.getConnectionData()));
+            qsBuilder.append("&connectionData=").append(urlEncode(connection.getConnectionData()));
         }
 
         if (connection.getQueryString() != null) {
@@ -179,14 +174,14 @@ public class TransportHelper {
      */
     public static String getSendQueryString(ClientTransport transport, ConnectionBase connection) {
         StringBuilder qsBuilder = new StringBuilder();
-        qsBuilder.append("?transport=" + TransportHelper.urlEncode(transport.getName()));
+        qsBuilder.append("?transport=").append(TransportHelper.urlEncode(transport.getName()));
 
-        qsBuilder.append("&connectionToken=" + TransportHelper.urlEncode(connection.getConnectionToken()));
+        qsBuilder.append("&connectionToken=").append(TransportHelper.urlEncode(connection.getConnectionToken()));
 
-        qsBuilder.append("&connectionId=" + TransportHelper.urlEncode(connection.getConnectionId()));
+        qsBuilder.append("&connectionId=").append(TransportHelper.urlEncode(connection.getConnectionId()));
 
         if (connection.getConnectionData() != null) {
-            qsBuilder.append("&connectionData=" + TransportHelper.urlEncode(connection.getConnectionData()));
+            qsBuilder.append("&connectionData=").append(TransportHelper.urlEncode(connection.getConnectionData()));
         }
 
         if (connection.getQueryString() != null) {
@@ -204,7 +199,7 @@ public class TransportHelper {
         String encoded = null;
         try {
             encoded = URLEncoder.encode(s, Constants.UTF8_NAME);
-        } catch (UnsupportedEncodingException e) {
+        } catch (UnsupportedEncodingException ignored) {
         }
 
         return encoded;

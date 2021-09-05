@@ -6,23 +6,18 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.tests.mocktransport;
 
-import static org.junit.Assert.*;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.github.signalr4j.client.NullLogger;
 import com.github.signalr4j.client.SignalRFuture;
-import com.github.signalr4j.client.tests.util.MockHttpConnection;
+import com.github.signalr4j.client.tests.util.*;
 import com.github.signalr4j.client.tests.util.MockHttpConnection.RequestEntry;
-import com.github.signalr4j.client.tests.util.MockConnection;
-import com.github.signalr4j.client.tests.util.MultiResult;
-import com.github.signalr4j.client.tests.util.Sync;
-import com.github.signalr4j.client.tests.util.TransportType;
-import com.github.signalr4j.client.tests.util.Utils;
 import com.github.signalr4j.client.transport.ConnectionType;
 import com.github.signalr4j.client.transport.DataResultCallback;
 import com.github.signalr4j.client.transport.ServerSentEventsTransport;
+import org.junit.Before;
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class ServerSentEventsTransportTests extends HttpClientTransportTests {
 
@@ -51,7 +46,7 @@ public class ServerSentEventsTransportTests extends HttpClientTransportTests {
 
         final String dataLock = "dataLock" + getTransportType().toString();
 
-        SignalRFuture<Void> future = transport.start(connection, ConnectionType.InitialConnection, new DataResultCallback() {
+        SignalRFuture<Void> future = transport.start(connection, ConnectionType.INITIAL_CONNECTION, new DataResultCallback() {
 
             @Override
             public void onData(String data) {

@@ -10,5 +10,6 @@ package com.github.signalr4j.client.transport;
  * Connection type
  */
 public enum ConnectionType {
-    InitialConnection, Reconnection
+    INITIAL_CONNECTION,
+    RECONNECTION
 }

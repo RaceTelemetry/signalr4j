@@ -6,63 +6,64 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.hubs;
 
+import com.google.gson.JsonElement;
+import com.google.gson.annotations.SerializedName;
+
 import java.util.Map;
 
-import com.google.gson.JsonElement;
-
 public class HubInvocation {
-    @com.google.gson.annotations.SerializedName("I")
-    private String mCallbackId;
+    @SerializedName("I")
+    private String callbackId;
 
-    @com.google.gson.annotations.SerializedName("H")
-    private String mHub;
+    @SerializedName("H")
+    private String hub;
 
-    @com.google.gson.annotations.SerializedName("M")
-    private String mMethod;
+    @SerializedName("M")
+    private String method;
 
-    @com.google.gson.annotations.SerializedName("A")
-    private JsonElement[] mArgs;
+    @SerializedName("A")
+    private JsonElement[] args;
 
-    @com.google.gson.annotations.SerializedName("S")
-    private Map<String, JsonElement> mState;
+    @SerializedName("S")
+    private Map<String, JsonElement> state;
 
     public String getCallbackId() {
-        return mCallbackId;
+        return callbackId;
     }
 
     public void setCallbackId(String callbackId) {
-        mCallbackId = callbackId;
+        this.callbackId = callbackId;
     }
 
     public String getHub() {
-        return mHub;
+        return hub;
     }
 
     public void setHub(String hub) {
-        mHub = hub;
+        this.hub = hub;
     }
 
     public String getMethod() {
-        return mMethod;
+        return method;
     }
 
     public void setMethod(String method) {
-        mMethod = method;
+        this.method = method;
     }
 
     public JsonElement[] getArgs() {
-        return mArgs;
+        return args;
     }
 
     public void setArgs(JsonElement[] args) {
-        mArgs = args;
+        this.args = args;
     }
 
     public Map<String, JsonElement> getState() {
-        return mState;
+        return state;
     }
 
     public void setState(Map<String, JsonElement> state) {
-        mState = state;
+        this.state = state;
     }
 }

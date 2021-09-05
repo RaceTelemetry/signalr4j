@@ -6,27 +6,20 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.tests.mocktransport;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.util.UUID;
-
+import com.github.signalr4j.client.*;
 import com.github.signalr4j.client.tests.util.MockClientTransport;
 import com.github.signalr4j.client.tests.util.MultiResult;
 import com.github.signalr4j.client.tests.util.Utils;
-import com.github.signalr4j.client.Action;
-import com.github.signalr4j.client.ConnectionState;
-import com.github.signalr4j.client.MessageReceivedHandler;
-import com.github.signalr4j.client.NullLogger;
-import com.github.signalr4j.client.Connection;
-import com.github.signalr4j.client.SignalRFuture;
 import com.github.signalr4j.client.transport.NegotiationResponse;
-
-import org.junit.Test;
-
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import org.junit.Test;
+
+import java.util.UUID;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class ConnectionTests {
 
@@ -44,11 +37,11 @@ public class ConnectionTests {
 
         transport.negotiationFuture.setResult(Utils.getDefaultNegotiationResponse());
 
-        assertEquals(ConnectionState.Connecting, connection.getState());
+        assertEquals(ConnectionState.CONNECTING, connection.getState());
 
         transport.startOperation.future.setResult(null);
 
-        assertEquals(ConnectionState.Connected, connection.getState());
+        assertEquals(ConnectionState.CONNECTED, connection.getState());
 
         assertTrue(startFuture.isDone());
     }
@@ -118,13 +111,13 @@ public class ConnectionTests {
         transport.negotiationFuture.setResult(Utils.getDefaultNegotiationResponse());
         transport.startOperation.future.setResult(null);
         transport.startOperation.callback.onData("{\"S\":1}");
-        assertEquals(ConnectionState.Connected, connection.getState());
+        assertEquals(ConnectionState.CONNECTED, connection.getState());
 
         JsonObject disconnectMessage = new JsonObject();
         disconnectMessage.addProperty("D", 1);
         transport.startOperation.callback.onData(disconnectMessage.toString());
 
-        assertEquals(ConnectionState.Disconnected, connection.getState());
+        assertEquals(ConnectionState.DISCONNECTED, connection.getState());
     }
 
     @Test
@@ -150,9 +143,9 @@ public class ConnectionTests {
 
         transport.startOperation.future.setResult(null);
 
-        assertEquals(ConnectionState.Connected, result.statesResult.get(0));
-        assertEquals(ConnectionState.Reconnecting, result.statesResult.get(1));
-        assertEquals(ConnectionState.Connected, connection.getState());
+        assertEquals(ConnectionState.CONNECTED, result.statesResult.get(0));
+        assertEquals(ConnectionState.RECONNECTING, result.statesResult.get(1));
+        assertEquals(ConnectionState.CONNECTED, connection.getState());
     }
 
     @Test
@@ -199,7 +192,7 @@ public class ConnectionTests {
         transport.startOperation.future.setResult(null);
         transport.startOperation.callback.onData("{\"S\":1}");
 
-        assertEquals(ConnectionState.Connected, connection.getState());
+        assertEquals(ConnectionState.CONNECTED, connection.getState());
 
         connection.closed(new Runnable() {
 
@@ -213,7 +206,7 @@ public class ConnectionTests {
 
         transport.abortFuture.setResult(null);
 
-        assertEquals(ConnectionState.Disconnected, connection.getState());
+        assertEquals(ConnectionState.DISCONNECTED, connection.getState());
         assertEquals(1, result.intResult);
         assertEquals(1, transport.getAbortInvocations());
     }
@@ -232,7 +225,7 @@ public class ConnectionTests {
         transport.startOperation.future.setResult(null);
         transport.startOperation.callback.onData("{\"S\":1}");
 
-        assertEquals(ConnectionState.Connected, connection.getState());
+        assertEquals(ConnectionState.CONNECTED, connection.getState());
 
         connection.closed(new Runnable() {
 
@@ -244,7 +237,7 @@ public class ConnectionTests {
 
         connection.disconnect();
 
-        assertEquals(ConnectionState.Disconnected, connection.getState());
+        assertEquals(ConnectionState.DISCONNECTED, connection.getState());
         assertEquals(1, result.intResult);
         assertEquals(0, transport.getAbortInvocations());
     }
@@ -269,7 +262,7 @@ public class ConnectionTests {
         transport.startOperation.future.setResult(null);
         transport.startOperation.callback.onData("{\"S\":1}");
 
-        assertEquals(ConnectionState.Connected, connection.getState());
+        assertEquals(ConnectionState.CONNECTED, connection.getState());
 
         connection.connectionSlow(new Runnable() {
 
@@ -282,7 +275,7 @@ public class ConnectionTests {
         Thread.sleep((long) ((negotiation.getDisconnectTimeout() + 1) * 1000));
 
         assertEquals(1, result.intResult);
-        assertEquals(ConnectionState.Reconnecting, connection.getState());
+        assertEquals(ConnectionState.RECONNECTING, connection.getState());
     }
 
 }

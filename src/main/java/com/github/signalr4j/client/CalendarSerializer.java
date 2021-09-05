@@ -6,24 +6,19 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client;
 
+import com.google.gson.*;
+
 import java.lang.reflect.Type;
 import java.util.Calendar;
 import java.util.Date;
 
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
-
 public class CalendarSerializer implements JsonSerializer<Calendar>, JsonDeserializer<Calendar> {
 
-    private static final DateSerializer mInternalSerializer = new DateSerializer();
+    private static final DateSerializer INTERNAL_SERIALIZER = new DateSerializer();
 
     @Override
     public Calendar deserialize(JsonElement element, Type type, JsonDeserializationContext ctx) throws JsonParseException {
-        Date date = mInternalSerializer.deserialize(element, Date.class, ctx);
+        Date date = INTERNAL_SERIALIZER.deserialize(element, Date.class, ctx);
 
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
@@ -33,7 +28,7 @@ public class CalendarSerializer implements JsonSerializer<Calendar>, JsonDeseria
 
     @Override
     public JsonElement serialize(Calendar calendar, Type type, JsonSerializationContext ctx) {
-        return mInternalSerializer.serialize(calendar.getTime(), Date.class, ctx);
+        return INTERNAL_SERIALIZER.serialize(calendar.getTime(), Date.class, ctx);
     }
 
 }

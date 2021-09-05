@@ -6,34 +6,23 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.test.integration.tests;
 
+import com.github.signalr4j.client.*;
+import com.github.signalr4j.client.http.Request;
+import com.github.signalr4j.client.hubs.HubConnection;
+import com.github.signalr4j.client.hubs.HubException;
+import com.github.signalr4j.client.hubs.HubProxy;
+import com.github.signalr4j.client.test.integration.ApplicationContext;
+import com.github.signalr4j.client.test.integration.TransportType;
+import com.github.signalr4j.client.test.integration.framework.*;
+import com.github.signalr4j.client.transport.ClientTransport;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
-
-import com.github.signalr4j.client.test.integration.ApplicationContext;
-import com.github.signalr4j.client.test.integration.TransportType;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonPrimitive;
-
-import com.github.signalr4j.client.Action;
-import com.github.signalr4j.client.ConnectionState;
-import com.github.signalr4j.client.Credentials;
-import com.github.signalr4j.client.ErrorCallback;
-import com.github.signalr4j.client.MessageReceivedHandler;
-import com.github.signalr4j.client.StateChangedCallback;
-import com.github.signalr4j.client.http.Request;
-import com.github.signalr4j.client.hubs.HubConnection;
-import com.github.signalr4j.client.hubs.HubException;
-import com.github.signalr4j.client.hubs.HubProxy;
-import com.github.signalr4j.client.test.integration.framework.ExpectedValueException;
-import com.github.signalr4j.client.test.integration.framework.TestCase;
-import com.github.signalr4j.client.test.integration.framework.TestGroup;
-import com.github.signalr4j.client.test.integration.framework.TestResult;
-import com.github.signalr4j.client.test.integration.framework.TestStatus;
-import com.github.signalr4j.client.test.integration.framework.Util;
-import com.github.signalr4j.client.transport.ClientTransport;
 
 public class MiscTests extends TestGroup {
     
@@ -110,12 +99,12 @@ public class MiscTests extends TestGroup {
 				    //validations
 				    
 				    if (!Util.compareArrays(
-				            new ConnectionState[] {
-				                    ConnectionState.Disconnected, 
-				                    ConnectionState.Connecting, 
-				                    ConnectionState.Connected, 
-				                    ConnectionState.Disconnected},
-				            testData.connectionStates.toArray())) {
+                            new ConnectionState[]{
+                                    ConnectionState.DISCONNECTED,
+                                    ConnectionState.CONNECTING,
+                                    ConnectionState.CONNECTED,
+                                    ConnectionState.DISCONNECTED},
+                            testData.connectionStates.toArray())) {
 				        return createResultFromException(new Exception("The connection states were incorrect"));
 				    }
 				    
@@ -326,7 +315,7 @@ public class MiscTests extends TestGroup {
                         
                         @Override
                         public void run() {
-                            testData.connectionStates.add(ConnectionState.Reconnecting);
+                            testData.connectionStates.add(ConnectionState.RECONNECTING);
                         }
                     });
                     
@@ -337,7 +326,7 @@ public class MiscTests extends TestGroup {
                     long current = Calendar.getInstance().getTimeInMillis();
                     
                     while (Calendar.getInstance().getTimeInMillis() - current < 60 * 1000) {
-                        if (connection.getState() == ConnectionState.Disconnected) {
+                        if (connection.getState() == ConnectionState.DISCONNECTED) {
                             break;
                         }
                     }
@@ -349,12 +338,12 @@ public class MiscTests extends TestGroup {
                     ApplicationContext.showMessage("Enable connection with the server").get();
                     
                     //validations
-                    
-                    if (connection.getState() != ConnectionState.Disconnected) {
+
+                    if (connection.getState() != ConnectionState.DISCONNECTED) {
                         return createResultFromException(new Exception("Connection should be disconnected"));
                     }
-                    
-                    if (!testData.connectionStates.contains(ConnectionState.Reconnecting)) {
+
+                    if (!testData.connectionStates.contains(ConnectionState.RECONNECTING)) {
                         return createResultFromException(new Exception("The client should have tried to reconnect"));
                     }
                     
@@ -387,7 +376,7 @@ public class MiscTests extends TestGroup {
                         
                         @Override
                         public void run() {
-                            testData.connectionStates.add(ConnectionState.Reconnecting);
+                            testData.connectionStates.add(ConnectionState.RECONNECTING);
                         }
                     });
                     
@@ -402,14 +391,14 @@ public class MiscTests extends TestGroup {
                     result.setTestCase(this);
                     
                     //validations
-                    
-                    if (connection.getState() != ConnectionState.Connected) {
+
+                    if (connection.getState() != ConnectionState.CONNECTED) {
                         return createResultFromException(new Exception("Connection should be connected"));
                     }
                     
                     connection.disconnect();
-                    
-                    if (!testData.connectionStates.contains(ConnectionState.Reconnecting)) {
+
+                    if (!testData.connectionStates.contains(ConnectionState.RECONNECTING)) {
                         return createResultFromException(new Exception("The client should have tried to reconnect"));
                     }
                     
@@ -454,8 +443,8 @@ public class MiscTests extends TestGroup {
                     result.setTestCase(this);
                     
                     //validations
-                    
-                    if (connection.getState() != ConnectionState.Disconnected) {
+
+                    if (connection.getState() != ConnectionState.DISCONNECTED) {
                         return createResultFromException(new Exception("Connection should be disconnected"));
                     }
                     

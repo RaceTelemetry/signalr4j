@@ -6,27 +6,21 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.tests.realtransport;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import com.github.signalr4j.client.*;
+import com.github.signalr4j.client.tests.util.MultiResult;
+import com.github.signalr4j.client.tests.util.Utils;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
+import org.junit.Ignore;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
 
-import com.github.signalr4j.client.Connection;
-import com.github.signalr4j.client.ConnectionState;
-import com.github.signalr4j.client.MessageReceivedHandler;
-import com.github.signalr4j.client.SignalRFuture;
-import com.github.signalr4j.client.StateChangedCallback;
-import com.github.signalr4j.client.tests.util.MultiResult;
-import com.github.signalr4j.client.tests.util.Utils;
-
-import org.junit.Ignore;
-import org.junit.Test;
-
-import com.google.gson.JsonElement;
-import com.google.gson.JsonPrimitive;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 @Ignore
 public class ConnectionTests {
@@ -45,18 +39,18 @@ public class ConnectionTests {
                 newStates.add(newState);
             }
         });
-        
+
         SignalRFuture<Void> startFuture = connection.start();
-        
+
         startFuture.get();
-        
+
         assertEquals(2, newStates.size());
-        assertEquals(ConnectionState.Connecting, newStates.get(0));
-        assertEquals(ConnectionState.Connected, newStates.get(1));
-        assertEquals(ConnectionState.Connected, connection.getState());
-        
+        assertEquals(ConnectionState.CONNECTING, newStates.get(0));
+        assertEquals(ConnectionState.CONNECTED, newStates.get(1));
+        assertEquals(ConnectionState.CONNECTED, connection.getState());
+
         assertTrue(startFuture.isDone());
-        
+
         connection.disconnect();
     }
 
@@ -127,7 +121,7 @@ public class ConnectionTests {
         connection.start().get();
         
         final MultiResult result = new MultiResult();
-        assertEquals(ConnectionState.Connected, connection.getState());
+        assertEquals(ConnectionState.CONNECTED, connection.getState());
 
         final Semaphore semaphore = new Semaphore(0);
         connection.closed(new Runnable() {
@@ -142,8 +136,8 @@ public class ConnectionTests {
         connection.stop();
 
         semaphore.acquire();
-        
-        assertEquals(ConnectionState.Disconnected, connection.getState());
+
+        assertEquals(ConnectionState.DISCONNECTED, connection.getState());
         assertEquals(1, result.intResult);
     }
 

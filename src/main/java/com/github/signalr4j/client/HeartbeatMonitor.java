@@ -14,21 +14,21 @@ import java.util.concurrent.TimeUnit;
  * Heartbeat Monitor to detect slow or timed out connections
  */
 public class HeartbeatMonitor {
-    private Runnable mOnWarning;
+    private Runnable onWarning;
 
-    private Runnable mOnTimeout;
+    private Runnable onTimeout;
 
-    private KeepAliveData mKeepAliveData;
+    private KeepAliveData keepAliveData;
 
-    private ScheduledThreadPoolExecutor mExecutor;
+    private ScheduledThreadPoolExecutor executor;
 
-    private boolean mTimedOut = false;
+    private boolean timedOut = false;
 
-    private boolean mHasBeenWarned = false;
+    private boolean hasBeenWarned = false;
 
-    private boolean mStopped = true;
+    private boolean stopped = true;
 
-    private Object mSync = new Object();
+    private final Object sync = new Object();
 
     /**
      * Starts the monitor
@@ -43,47 +43,43 @@ public class HeartbeatMonitor {
             throw new IllegalArgumentException("keepAliveData cannot be null");
         }
 
-        if (mKeepAliveData != null) {
+        if (this.keepAliveData != null) {
             stop();
         }
 
-        synchronized (mSync) {
-            mKeepAliveData = keepAliveData;
+        synchronized (sync) {
+            this.keepAliveData = keepAliveData;
 
-            mTimedOut = false;
-            mHasBeenWarned = false;
-            mStopped = false;
+            timedOut = false;
+            hasBeenWarned = false;
+            stopped = false;
 
-            long interval = mKeepAliveData.getCheckInterval();
+            long interval = this.keepAliveData.getCheckInterval();
 
-            mExecutor = new ScheduledThreadPoolExecutor(1);
-            mExecutor.scheduleAtFixedRate(new Runnable() {
+            executor = new ScheduledThreadPoolExecutor(1);
+            executor.scheduleAtFixedRate(() -> {
+                synchronized (sync) {
+                    if (!stopped) {
+                        if (connection.getState() == ConnectionState.CONNECTED) {
+                            long lastKeepAlive = HeartbeatMonitor.this.keepAliveData.getLastKeepAlive();
+                            long timeElapsed = Calendar.getInstance().getTimeInMillis() - lastKeepAlive;
 
-                @Override
-                public void run() {
-                    synchronized (mSync) {
-                        if (!mStopped) {
-                            if (connection.getState() == ConnectionState.Connected) {
-                                long lastKeepAlive = mKeepAliveData.getLastKeepAlive();
-                                long timeElapsed = Calendar.getInstance().getTimeInMillis() - lastKeepAlive;
-
-                                if (timeElapsed >= mKeepAliveData.getTimeout()) {
-                                    if (!mTimedOut) {
-                                        // Connection has been lost
-                                        mTimedOut = true;
-                                        mOnTimeout.run();
-                                    }
-                                } else if (timeElapsed >= mKeepAliveData.getTimeoutWarning()) {
-                                    if (!mHasBeenWarned) {
-                                        // Inform user and set HasBeenWarned to
-                                        // true
-                                        mHasBeenWarned = true;
-                                        mOnWarning.run();
-                                    }
-                                } else {
-                                    mHasBeenWarned = false;
-                                    mTimedOut = false;
+                            if (timeElapsed >= HeartbeatMonitor.this.keepAliveData.getTimeout()) {
+                                if (!timedOut) {
+                                    // Connection has been lost
+                                    timedOut = true;
+                                    onTimeout.run();
                                 }
+                            } else if (timeElapsed >= HeartbeatMonitor.this.keepAliveData.getTimeoutWarning()) {
+                                if (!hasBeenWarned) {
+                                    // Inform user and set HasBeenWarned to
+                                    // true
+                                    hasBeenWarned = true;
+                                    onWarning.run();
+                                }
+                            } else {
+                                hasBeenWarned = false;
+                                timedOut = false;
                             }
                         }
                     }
@@ -96,12 +92,12 @@ public class HeartbeatMonitor {
      * Stops the heartbeat monitor
      */
     public void stop() {
-        if (!mStopped) {
-            synchronized (mSync) {
-                mStopped = true;
-                if (mExecutor != null) {
-                    mExecutor.shutdown();
-                    mExecutor = null;
+        if (!stopped) {
+            synchronized (sync) {
+                stopped = true;
+                if (executor != null) {
+                    executor.shutdown();
+                    executor = null;
                 }
             }
         }
@@ -111,9 +107,9 @@ public class HeartbeatMonitor {
      * Alerts the monitor that a beat was detected
      */
     public void beat() {
-        synchronized (mSync) {
-            if (mKeepAliveData != null) {
-                mKeepAliveData.setLastKeepAlive(Calendar.getInstance().getTimeInMillis());
+        synchronized (sync) {
+            if (keepAliveData != null) {
+                keepAliveData.setLastKeepAlive(Calendar.getInstance().getTimeInMillis());
             }
         }
     }
@@ -122,41 +118,41 @@ public class HeartbeatMonitor {
      * Returns the "Warning" event handler
      */
     public Runnable getOnWarning() {
-        return mOnWarning;
+        return onWarning;
     }
 
     /**
      * Sets the "Warning" event handler
      */
     public void setOnWarning(Runnable onWarning) {
-        mOnWarning = onWarning;
+        this.onWarning = onWarning;
     }
 
     /**
      * Returns the "Timeout" event handler
      */
     public Runnable getOnTimeout() {
-        return mOnTimeout;
+        return onTimeout;
     }
 
     /**
      * Sets the "Timeout" event handler
      */
     public void setOnTimeout(Runnable onTimeout) {
-        mOnTimeout = onTimeout;
+        this.onTimeout = onTimeout;
     }
 
     /**
      * Returns the Keep Alive data
      */
     public KeepAliveData getKeepAliveData() {
-        return mKeepAliveData;
+        return keepAliveData;
     }
 
     /**
      * Sets the Keep Alive data
      */
     public void setKeepAliveData(KeepAliveData keepAliveData) {
-        mKeepAliveData = keepAliveData;
+        this.keepAliveData = keepAliveData;
     }
 }

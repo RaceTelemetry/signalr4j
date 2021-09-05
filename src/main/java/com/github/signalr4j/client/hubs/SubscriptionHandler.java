@@ -7,5 +7,5 @@ See License.txt in the project root for license information.
 package com.github.signalr4j.client.hubs;
 
 public interface SubscriptionHandler {
-    public void run();
+    void run();
 }

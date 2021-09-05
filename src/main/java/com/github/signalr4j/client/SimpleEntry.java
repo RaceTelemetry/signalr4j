@@ -10,42 +10,40 @@ import java.util.Map.Entry;
 
 /**
  * Simple Entry&lt;K,V&gt; implementation
- * 
- * @param <K>
- *            Key
- * @param <V>
- *            Value
+ *
+ * @param <K> Key
+ * @param <V> Value
  */
 public class SimpleEntry<K, V> implements Entry<K, V> {
-    K mKey;
-    V mValue;
+    K key;
+    V value;
 
     /**
      * Initializes the SimpleEntry
-     * 
+     *
      * @param key
      *            Entry key
      * @param value
      *            Entry value
      */
     public SimpleEntry(K key, V value) {
-        mKey = key;
-        mValue = value;
+        this.key = key;
+        this.value = value;
     }
 
     @Override
     public K getKey() {
-        return mKey;
+        return key;
     }
 
     @Override
     public V getValue() {
-        return mValue;
+        return value;
     }
 
     @Override
     public V setValue(V value) {
-        mValue = value;
-        return mValue;
+        this.value = value;
+        return this.value;
     }
 }

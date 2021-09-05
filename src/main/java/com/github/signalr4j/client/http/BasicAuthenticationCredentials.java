@@ -12,14 +12,14 @@ import com.github.signalr4j.client.Credentials;
  * Credentials implementation for HTTP Basic Authentication
  */
 public class BasicAuthenticationCredentials implements Credentials {
-    private String mUsername;
-    private String mPassword;
-    private Base64Encoder mEncoder;
+    private String username;
+    private String password;
+    private Base64Encoder encoder;
 
     /**
      * Creates a BasicAuthenticationCredentials instance with a username,
      * password and an encoder
-     * 
+     *
      * @param username
      *            The username for the credentials
      * @param password
@@ -43,9 +43,9 @@ public class BasicAuthenticationCredentials implements Credentials {
      *            The Base64 encoder to use
      */
     private void initialize(String username, String password, Base64Encoder encoder) {
-        mUsername = username;
-        mPassword = password;
-        mEncoder = encoder;
+        this.username = username;
+        this.password = password;
+        this.encoder = encoder;
 
         if (encoder == null) {
             throw new IllegalArgumentException("encoder");
@@ -56,7 +56,7 @@ public class BasicAuthenticationCredentials implements Credentials {
      * Returns the username for the credentials
      */
     public String getUsername() {
-        return mUsername;
+        return username;
     }
 
     /**
@@ -66,14 +66,14 @@ public class BasicAuthenticationCredentials implements Credentials {
      *            username to set
      */
     public void setUsername(String username) {
-        mUsername = username;
+        this.username = username;
     }
 
     /**
      * Returns the password for the credentials
      */
     public String getPassword() {
-        return mPassword;
+        return password;
     }
 
     /**
@@ -83,14 +83,14 @@ public class BasicAuthenticationCredentials implements Credentials {
      *            password for the credentials
      */
     public void setPassword(String password) {
-        mPassword = password;
+        this.password = password;
     }
 
     @Override
     public void prepareRequest(Request request) {
-        String headerValue = mUsername + ":" + mPassword;
+        String headerValue = username + ":" + password;
 
-        headerValue = mEncoder.encodeBytes(headerValue.getBytes()).trim();
+        headerValue = encoder.encodeBytes(headerValue.getBytes()).trim();
 
         request.addHeader("Authorization", "Basic " + headerValue);
     }

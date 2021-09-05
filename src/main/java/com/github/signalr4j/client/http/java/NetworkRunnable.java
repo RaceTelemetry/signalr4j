@@ -6,18 +6,18 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.http.java;
 
+import com.github.signalr4j.client.LogLevel;
+import com.github.signalr4j.client.Logger;
+import com.github.signalr4j.client.http.HttpConnectionFuture;
+import com.github.signalr4j.client.http.Request;
+import com.github.signalr4j.client.http.StreamResponse;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Map;
-
-import com.github.signalr4j.client.Logger;
-import com.github.signalr4j.client.http.HttpConnectionFuture;
-import com.github.signalr4j.client.http.StreamResponse;
-import com.github.signalr4j.client.LogLevel;
-import com.github.signalr4j.client.http.Request;
 
 /**
  * Runnable that executes a network operation
@@ -62,11 +62,11 @@ class NetworkRunnable implements Runnable {
                     return;
                 }
 
-                mLogger.log("Execute the HTTP Request", LogLevel.Verbose);
+                mLogger.log("Execute the HTTP Request", LogLevel.VERBOSE);
                 mRequest.log(mLogger);
                 mConnection = createHttpURLConnection(mRequest);
 
-                mLogger.log("Request executed", LogLevel.Verbose);
+                mLogger.log("Request executed", LogLevel.VERBOSE);
 
                 responseCode = mConnection.getResponseCode();
 
@@ -87,7 +87,7 @@ class NetworkRunnable implements Runnable {
                     mConnection.disconnect();
                 }
 
-                mLogger.log("Error executing request: " + e.getMessage(), LogLevel.Critical);
+                mLogger.log("Error executing request: " + e.getMessage(), LogLevel.CRITICAL);
                 mFuture.triggerError(e);
             }
         } finally {

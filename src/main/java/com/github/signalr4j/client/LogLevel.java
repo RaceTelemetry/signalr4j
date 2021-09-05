@@ -10,5 +10,7 @@ package com.github.signalr4j.client;
  * Represents a logging level
  */
 public enum LogLevel {
-    Critical, Information, Verbose
+    CRITICAL,
+    INFORMATION,
+    VERBOSE
 }

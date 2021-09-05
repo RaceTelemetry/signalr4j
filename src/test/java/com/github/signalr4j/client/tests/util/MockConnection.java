@@ -6,23 +6,15 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.tests.util;
 
+import com.github.signalr4j.client.*;
+import com.github.signalr4j.client.http.Request;
+import com.github.signalr4j.client.transport.ClientTransport;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import com.github.signalr4j.client.ConnectionBase;
-import com.github.signalr4j.client.ConnectionState;
-import com.github.signalr4j.client.Credentials;
-import com.github.signalr4j.client.ErrorCallback;
-import com.github.signalr4j.client.Logger;
-import com.github.signalr4j.client.MessageReceivedHandler;
-import com.github.signalr4j.client.SignalRFuture;
-import com.github.signalr4j.client.StateChangedCallback;
-import com.github.signalr4j.client.http.Request;
-import com.github.signalr4j.client.transport.ClientTransport;
 
 public class MockConnection implements ConnectionBase {
 
@@ -103,7 +95,7 @@ public class MockConnection implements ConnectionBase {
 
     @Override
     public ConnectionState getState() {
-        return ConnectionState.Connected;
+        return ConnectionState.CONNECTED;
     }
 
     @Override

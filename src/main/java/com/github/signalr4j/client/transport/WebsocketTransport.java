@@ -21,10 +21,9 @@ import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.*;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.StringJoiner;
 
 /**
  * Implements the WebsocketTransport for the Java SignalR library Created by
@@ -72,39 +71,34 @@ public class WebsocketTransport extends HttpClientTransport {
 									 final DataResultCallback callback) {
 
 		final String connectionUrl = connection.getUrl()
-				.replace(HTTP_URL_START, WEBSOCKET_URL_START)
-				.replace(SECURE_HTTP_URL_START, SECURE_WEBSOCKET_URL_START);
+				.replace(SECURE_HTTP_URL_START, SECURE_WEBSOCKET_URL_START)
+				.replace(HTTP_URL_START, WEBSOCKET_URL_START);
+		connection.getLogger().log("WebSocket URL: " + connectionUrl, LogLevel.VERBOSE);
 
-		final String connectionString = connectionType == ConnectionType.InitialConnection ? "connect" : "reconnect";
+		final String connectionString = connectionType == ConnectionType.INITIAL_CONNECTION ? "connect" : "reconnect";
 
 		Map<String, String> requestParams = new HashMap<>();
 		requestParams.put("connectionToken", connection.getConnectionToken());
 		requestParams.put("connectionData", connection.getConnectionData());
-		requestParams.put("groupsToken", connection.getGroupsToken());
-		requestParams.put("messageId", connection.getMessageId());
+		requestParams.put("clientProtocol", Connection.PROTOCOL_VERSION.toString());
+//		requestParams.put("groupsToken", connection.getGroupsToken());
+//		requestParams.put("messageId", connection.getMessageId());
 		requestParams.put("transport", getName());
+		connection.getLogger().log("WebSocket request params: " + requestParams, LogLevel.VERBOSE);
 
 		boolean isSsl = false;
 
-//      Error on API < 24
-//		String url = requestParams.keySet().stream()
-//				.map(key -> key + "=" + encodeValue(requestParams.get(key)))
-//				.collect(joining("&", connectionUrl + connectionString + "?", ""));
-
-		ArrayList<String> keys = new ArrayList<>(requestParams.keySet());
 		StringBuilder urlBuilder = new StringBuilder();
 		urlBuilder.append(connectionUrl);
 		urlBuilder.append(connectionString);
-		urlBuilder.append("?");
-		for (int i = 0; i < keys.size(); i++) {
-			String key = keys.get(i);
-			urlBuilder.append(key);
-			urlBuilder.append("=");
-			urlBuilder.append(encodeValue(requestParams.get(key)));
-			if (i != keys.size() - 1) {
-				urlBuilder.append("&");
+
+		StringJoiner joiner = new StringJoiner("&");
+		for (Map.Entry<String, String> entry : requestParams.entrySet()) {
+			if (entry.getValue() != null) {
+				joiner.add(entry.getKey() + "=" + encodeValue(entry.getValue()));
 			}
 		}
+		urlBuilder.append("?").append(joiner);
 
 		String url = urlBuilder.toString();
 
@@ -112,11 +106,13 @@ public class WebsocketTransport extends HttpClientTransport {
 			url += "&" + connection.getQueryString();
 		}
 
+		connection.getLogger().log("WebSocket Encoded URL: " + url, LogLevel.VERBOSE);
+
 		if (url.startsWith(SECURE_WEBSOCKET_SCHEME)) {
 			isSsl = true;
 		}
 
-		mConnectionFuture = new UpdateableCancellableFuture<Void>(null);
+		mConnectionFuture = new UpdateableCancellableFuture<>(null);
 
 		URI uri;
 		try {
@@ -142,10 +138,15 @@ public class WebsocketTransport extends HttpClientTransport {
 			}
 
 			@Override
-			public void onClose(int i, String s, boolean b) {
+			public void onClose(int errorCode, String message, boolean remote) {
 				mWebSocketClient.close();
-				if (i != CloseFrame.NORMAL || e != null) {
+				if (errorCode != CloseFrame.NORMAL || e != null) {
+					if (e == null) {
+						e = new IllegalStateException("Remote " + remote + ", " + errorCode + " - " + message);
+					}
 					connection.onError(e, true);
+				} else {
+					connection.onError(new IllegalStateException("Remote " + remote + ", " + errorCode + " - " + message), true);
 				}
 			}
 
@@ -182,7 +183,7 @@ public class WebsocketTransport extends HttpClientTransport {
 						if (isJSONValid(extendedConcatenate)) {
 							onMessage(extendedConcatenate);
 						} else {
-							log("invalid json received:" + decodedString, LogLevel.Critical);
+							log("invalid json received:" + decodedString, LogLevel.CRITICAL);
 						}
 					}
 				} catch (InvalidDataException e) {
@@ -202,12 +203,7 @@ public class WebsocketTransport extends HttpClientTransport {
 
 		mWebSocketClient.connect();
 
-		connection.closed(new Runnable() {
-			@Override
-			public void run() {
-				mWebSocketClient.close();
-			}
-		});
+		connection.closed(() -> mWebSocketClient.close());
 
 		return mConnectionFuture;
 	}
@@ -258,7 +254,7 @@ public class WebsocketTransport extends HttpClientTransport {
 	@Override
 	public SignalRFuture<Void> send(ConnectionBase connection, String data, DataResultCallback callback) {
 		mWebSocketClient.send(data);
-		return new UpdateableCancellableFuture<Void>(null);
+		return new UpdateableCancellableFuture<>(null);
 	}
 
 	private boolean isJSONValid(String test) {
