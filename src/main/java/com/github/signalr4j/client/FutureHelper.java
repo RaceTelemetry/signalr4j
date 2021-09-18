@@ -16,11 +16,9 @@ public class FutureHelper {
     /**
      * Copy the Cancellation and Error handlers between two SignalRFuture
      * instances
-     * 
-     * @param sourceFuture
-     *            The source future
-     * @param targetFuture
-     *            The target future
+     *
+     * @param sourceFuture The source future
+     * @param targetFuture The target future
      */
     public static void copyHandlers(final SignalRFuture<?> sourceFuture, final SignalRFuture<?> targetFuture) {
         targetFuture.onCancelled(sourceFuture::cancel);
@@ -31,11 +29,9 @@ public class FutureHelper {
     /**
      * Copy the Cancellation and Error handlers between two SignalRFuture
      * instances, where the source is an HttpConnectionFuture
-     * 
-     * @param sourceFuture
-     *            The source future
-     * @param targetFuture
-     *            The target future
+     *
+     * @param sourceFuture The source future
+     * @param targetFuture The target future
      */
     public static void copyHandlers(HttpConnectionFuture sourceFuture, final SignalRFuture<?> targetFuture) {
         copyHandlers((SignalRFuture<?>) sourceFuture, targetFuture);

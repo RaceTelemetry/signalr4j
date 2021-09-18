@@ -6,26 +6,26 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.hubs;
 
-import com.google.gson.JsonElement;
-import com.google.gson.annotations.SerializedName;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.Map;
 
 public class HubInvocation {
-    @SerializedName("I")
+    @JsonProperty("I")
     private String callbackId;
 
-    @SerializedName("H")
+    @JsonProperty("H")
     private String hub;
 
-    @SerializedName("M")
+    @JsonProperty("M")
     private String method;
 
-    @SerializedName("A")
-    private JsonElement[] args;
+    @JsonProperty("A")
+    private JsonNode[] args;
 
-    @SerializedName("S")
-    private Map<String, JsonElement> state;
+    @JsonProperty("S")
+    private Map<String, JsonNode> state;
 
     public String getCallbackId() {
         return callbackId;
@@ -51,19 +51,19 @@ public class HubInvocation {
         this.method = method;
     }
 
-    public JsonElement[] getArgs() {
+    public JsonNode[] getArgs() {
         return args;
     }
 
-    public void setArgs(JsonElement[] args) {
+    public void setArgs(JsonNode[] args) {
         this.args = args;
     }
 
-    public Map<String, JsonElement> getState() {
+    public Map<String, JsonNode> getState() {
         return state;
     }
 
-    public void setState(Map<String, JsonElement> state) {
+    public void setState(Map<String, JsonNode> state) {
         this.state = state;
     }
 }

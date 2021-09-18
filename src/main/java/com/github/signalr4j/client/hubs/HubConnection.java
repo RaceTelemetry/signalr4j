@@ -6,10 +6,15 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.hubs;
 
-import com.github.signalr4j.client.*;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.github.signalr4j.client.Action;
+import com.github.signalr4j.client.Connection;
+import com.github.signalr4j.client.ConnectionState;
+import com.github.signalr4j.client.InvalidStateException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -21,6 +26,8 @@ import java.util.Map;
  */
 public class HubConnection extends Connection {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(HubConnection.class);
+
     private final Map<String, Action<HubResult>> callbacks = Collections.synchronizedMap(new HashMap<>());
     private final Map<String, HubProxy> hubs = Collections.synchronizedMap(new HashMap<>());
     private Integer callbackId = 0;
@@ -28,24 +35,18 @@ public class HubConnection extends Connection {
     /**
      * Initializes the connection
      *
-     * @param url
-     *            The connection URL
-     * @param queryString
-     *            The connection query string
-     * @param useDefaultUrl
-     *            indicates if the default SignalR URL should be used
-     * @param logger
-     *            The connection logger
+     * @param url           The connection URL
+     * @param queryString   The connection query string
+     * @param useDefaultUrl indicates if the default SignalR URL should be used
      */
-    public HubConnection(String url, String queryString, boolean useDefaultUrl, Logger logger) {
-        super(getUrl(url, useDefaultUrl), queryString, logger);
+    public HubConnection(String url, String queryString, boolean useDefaultUrl) {
+        super(getUrl(url, useDefaultUrl), queryString);
     }
 
     /**
      * Initialized the connection
-     * 
-     * @param url
-     *            The connection URL
+     *
+     * @param url The connection URL
      */
     public HubConnection(String url) {
         super(getUrl(url, true));
@@ -53,61 +54,59 @@ public class HubConnection extends Connection {
 
     /**
      * Initializes the connection
-     * 
-     * @param url
-     *            The connection URL
-     * @param useDefaultUrl
-     *            indicates if the default SignalR URL should be used
+     *
+     * @param url           The connection URL
+     * @param useDefaultUrl indicates if the default SignalR URL should be used
      */
     public HubConnection(String url, boolean useDefaultUrl) {
         super(getUrl(url, useDefaultUrl));
     }
 
     @Override
-    public void onReceived(JsonElement message) {
+    public void onReceived(JsonNode message) throws JsonProcessingException {
         super.onReceived(message);
 
-        log("Processing message", LogLevel.INFORMATION);
+        LOGGER.debug("Processing message");
         if (getState() == ConnectionState.CONNECTED) {
-            if (message.isJsonObject() && message.getAsJsonObject().has("I")) {
-                log("Getting HubResult from message", LogLevel.VERBOSE);
-                HubResult result = gson.fromJson(message, HubResult.class);
+            if (message.isObject() && message.has("I")) {
+                LOGGER.trace("Getting HubResult from message");
+                HubResult result = Connection.MAPPER.treeToValue(message, HubResult.class);
 
                 String id = result.getId().toLowerCase(Locale.getDefault());
-                log("Result Id: " + id, LogLevel.VERBOSE);
-                log("Result Data: " + result.getResult(), LogLevel.VERBOSE);
+                LOGGER.trace("Result Id: {}", id);
+                LOGGER.trace("Result Data: {}", result.getResult());
 
                 if (callbacks.containsKey(id)) {
-                    log("Get and remove callback with id: " + id, LogLevel.VERBOSE);
+                    LOGGER.trace("Get and remove callback with id: {}", id);
                     Action<HubResult> callback = callbacks.remove(id);
 
                     try {
-                        log("Execute callback for message", LogLevel.VERBOSE);
+                        LOGGER.trace("Execute callback for message");
                         callback.run(result);
                     } catch (Exception e) {
                         onError(e, false);
                     }
                 }
             } else {
-                HubInvocation invocation = gson.fromJson(message, HubInvocation.class);
-                log("Getting HubInvocation from message", LogLevel.VERBOSE);
+                HubInvocation invocation = Connection.MAPPER.treeToValue(message, HubInvocation.class);
+                LOGGER.trace("Getting HubInvocation from message");
 
                 String hubName = invocation.getHub().toLowerCase(Locale.getDefault());
-                log("Message for: " + hubName, LogLevel.VERBOSE);
+                LOGGER.trace("Message for: {}", hubName);
 
                 if (hubs.containsKey(hubName)) {
                     HubProxy hubProxy = hubs.get(hubName);
                     if (invocation.getState() != null) {
                         for (String key : invocation.getState().keySet()) {
-                            JsonElement value = invocation.getState().get(key);
-                            log("Setting state for hub: " + key + " -> " + value, LogLevel.VERBOSE);
+                            JsonNode value = invocation.getState().get(key);
+                            LOGGER.trace("Setting state for hub: {} -> {}", key, value);
                             hubProxy.setState(key, value);
                         }
                     }
 
                     String eventName = invocation.getMethod().toLowerCase(Locale.getDefault());
-                    log("Invoking event: " + eventName + " with arguments " + arrayToString(invocation.getArgs()), LogLevel.VERBOSE);
-    
+                    LOGGER.trace("Invoking event: {} with arguments {}", eventName, arrayToString(invocation.getArgs()));
+
                     try {
                         hubProxy.invokeEvent(eventName, invocation.getArgs());
                     } catch (Exception e) {
@@ -118,7 +117,7 @@ public class HubConnection extends Connection {
         }
     }
 
-    private static String arrayToString(JsonElement[] args) {
+    private static String arrayToString(JsonNode[] args) {
         StringBuilder sb = new StringBuilder();
 
         sb.append("[");
@@ -138,18 +137,18 @@ public class HubConnection extends Connection {
 
     @Override
     public String getConnectionData() {
-        JsonArray jsonArray = new JsonArray();
+        ArrayNode array = Connection.MAPPER.createArrayNode();
 
         for (String hubName : hubs.keySet()) {
-            JsonObject element = new JsonObject();
-            element.addProperty("name", hubName);
-            jsonArray.add(element);
+            array.add(Connection.MAPPER.createObjectNode()
+                    .put("name", hubName));
         }
 
-        String connectionData = jsonArray.toString();
-
-        log("Getting connection data: " + connectionData, LogLevel.VERBOSE);
-        return connectionData;
+        try {
+            return Connection.MAPPER.writeValueAsString(array);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Unable to serialize connection data", e);
+        }
     }
 
     @Override
@@ -159,13 +158,13 @@ public class HubConnection extends Connection {
     }
 
     private void clearInvocationCallbacks(String error) {
-        log("Clearing invocation callbacks: " + error, LogLevel.VERBOSE);
+        LOGGER.trace("Clearing invocation callbacks: {}", error);
         HubResult result = new HubResult();
         result.setError(error);
 
         for (String key : callbacks.keySet()) {
             try {
-                log("Invoking callback with empty result: " + key, LogLevel.VERBOSE);
+                LOGGER.trace("Invoking callback with empty result: {}", key);
                 callbacks.get(key).run(result);
             } catch (Exception ignored) {
             }
@@ -182,13 +181,11 @@ public class HubConnection extends Connection {
 
     /**
      * Creates a proxy for a hub
-     * 
-     * @param hubName
-     *            The hub name
+     *
+     * @param hubName The hub name
      * @return The proxy for the hub
-     * @throws InvalidStateException
-     *             If called when not disconnected, the method will throw an
-     *             exception
+     * @throws InvalidStateException If called when not disconnected, the method will throw an
+     *                               exception
      */
     public HubProxy createHubProxy(String hubName) {
         if (state != ConnectionState.DISCONNECTED) {
@@ -201,13 +198,13 @@ public class HubConnection extends Connection {
 
         String hubNameLower = hubName.toLowerCase(Locale.getDefault());
 
-        log("Creating hub proxy: " + hubNameLower, LogLevel.INFORMATION);
+        LOGGER.debug("Creating hub proxy: {}", hubNameLower);
 
         HubProxy proxy;
         if (hubs.containsKey(hubNameLower)) {
             proxy = hubs.get(hubNameLower);
         } else {
-            proxy = new HubProxy(this, hubName, getLogger());
+            proxy = new HubProxy(this, hubName);
             hubs.put(hubNameLower, proxy);
         }
 
@@ -216,14 +213,13 @@ public class HubConnection extends Connection {
 
     /**
      * Registers a callback
-     * 
-     * @param callback
-     *            The callback to register
+     *
+     * @param callback The callback to register
      * @return The callback Id
      */
     String registerCallback(Action<HubResult> callback) {
         String id = callbackId.toString().toLowerCase(Locale.getDefault());
-        log("Registering callback: " + id, LogLevel.VERBOSE);
+        LOGGER.trace("Registering callback: {}", id);
         callbacks.put(id, callback);
         callbackId++;
         return id;
@@ -231,22 +227,19 @@ public class HubConnection extends Connection {
 
     /**
      * Removes a callback
-     * 
-     * @param callbackId
-     *            Id for the callback to remove
+     *
+     * @param callbackId Id for the callback to remove
      */
     void removeCallback(String callbackId) {
-        log("Removing callback: " + callbackId, LogLevel.VERBOSE);
+        LOGGER.trace("Removing callback: {}", callbackId);
         callbacks.remove(callbackId.toLowerCase(Locale.getDefault()));
     }
 
     /**
      * Generates a standarized URL
-     * 
-     * @param url
-     *            The base URL
-     * @param useDefaultUrl
-     *            Indicates if the default SignalR suffix should be appended
+     *
+     * @param url           The base URL
+     * @param useDefaultUrl Indicates if the default SignalR suffix should be appended
      * @return The connection URL
      */
     private static String getUrl(String url, boolean useDefaultUrl) {

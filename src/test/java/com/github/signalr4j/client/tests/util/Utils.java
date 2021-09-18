@@ -6,14 +6,14 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.tests.util;
 
-import com.github.signalr4j.client.*;
+import com.github.signalr4j.client.Connection;
+import com.github.signalr4j.client.ConnectionState;
+import com.github.signalr4j.client.Constants;
 import com.github.signalr4j.client.http.HttpConnection;
 import com.github.signalr4j.client.transport.ClientTransport;
 import com.github.signalr4j.client.transport.LongPollingTransport;
 import com.github.signalr4j.client.transport.NegotiationResponse;
 import com.github.signalr4j.client.transport.ServerSentEventsTransport;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -30,10 +30,10 @@ public class Utils {
     }
 
     public static ClientTransport createTransport(TransportType transportType, HttpConnection httpConnection) {
-        if (transportType == TransportType.ServerSentEvents) {
-            return new ServerSentEventsTransport(new NullLogger(), httpConnection);
+        if (transportType == TransportType.SERVER_SENT_EVENTS) {
+            return new ServerSentEventsTransport(httpConnection);
         } else {
-            return new LongPollingTransport(new NullLogger(), httpConnection);
+            return new LongPollingTransport(httpConnection);
         }
     }
 
@@ -47,7 +47,7 @@ public class Utils {
 
     public static NegotiationResponse getDefaultNegotiationResponse() {
 
-        NegotiationResponse negotiation = new NegotiationResponse(null, new JsonParser());
+        NegotiationResponse negotiation = new NegotiationResponse(null);
 
         negotiation.setConnectionToken(UUID.randomUUID().toString());
         negotiation.setConnectionId(UUID.randomUUID().toString());
@@ -61,60 +61,26 @@ public class Utils {
     }
 
     public static void addResultHandlersToConnection(Connection connection, final MultiResult result, final boolean throwOnError) {
-        connection.connected(new Runnable() {
+        connection.connected(() -> result.statesResult.add(ConnectionState.CONNECTED));
 
-            @Override
-            public void run() {
-                result.statesResult.add(ConnectionState.CONNECTED);
-            }
-        });
+        connection.closed(() -> result.statesResult.add(ConnectionState.DISCONNECTED));
 
-        connection.closed(new Runnable() {
+        connection.reconnected(() -> result.statesResult.add(ConnectionState.CONNECTED));
 
-            @Override
-            public void run() {
-                result.statesResult.add(ConnectionState.DISCONNECTED);
-            }
-        });
+        connection.reconnecting(() -> result.statesResult.add(ConnectionState.RECONNECTING));
 
-        connection.reconnected(new Runnable() {
+        connection.received(json -> result.listResult.add(json.toString()));
 
-            @Override
-            public void run() {
-                result.statesResult.add(ConnectionState.CONNECTED);
-            }
-        });
+        connection.error(error -> {
+            result.errorsResult.add(error);
 
-        connection.reconnecting(new Runnable() {
-
-            @Override
-            public void run() {
-                result.statesResult.add(ConnectionState.RECONNECTING);
-            }
-        });
-
-        connection.received(new MessageReceivedHandler() {
-
-            @Override
-            public void onMessageReceived(JsonElement json) {
-                result.listResult.add(json.toString());
-            }
-        });
-
-        connection.error(new ErrorCallback() {
-
-            @Override
-            public void onError(Throwable error) {
-                result.errorsResult.add(error);
-
-                if (throwOnError) {
-                    throw new RuntimeException(error);
-                }
+            if (throwOnError) {
+                throw new RuntimeException(error);
             }
         });
     }
 
-    public static void finishMessage(MockHttpConnection.RequestEntry entry) throws Exception {
+    public static void finishMessage(MockHttpConnection.RequestEntry entry) {
         entry.finishRequest();
         entry.triggerResponse();
     }

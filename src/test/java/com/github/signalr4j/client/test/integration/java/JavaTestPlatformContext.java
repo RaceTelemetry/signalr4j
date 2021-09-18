@@ -6,46 +6,31 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.test.integration.java;
 
-import java.util.Scanner;
-import java.util.concurrent.Future;
-
-import com.github.signalr4j.client.LogLevel;
-import com.github.signalr4j.client.Logger;
 import com.github.signalr4j.client.SignalRFuture;
 import com.github.signalr4j.client.test.integration.TestPlatformContext;
 import com.github.signalr4j.client.test.integration.framework.TestCase;
 import com.github.signalr4j.client.test.integration.framework.TestExecutionCallback;
 import com.github.signalr4j.client.test.integration.framework.TestResult;
 
+import java.util.Scanner;
+import java.util.concurrent.Future;
+
 public class JavaTestPlatformContext implements TestPlatformContext {
 
-    private boolean mLoggingEnabled = false;
-    private String mServerUrl;
-    
+    private boolean loggingEnabled = false;
+    private final String serverUrl;
+
     public JavaTestPlatformContext(String serverUrl) {
-        mServerUrl = serverUrl;
+        this.serverUrl = serverUrl;
     }
-    
+
     public void setLoggingEnabled(boolean loggingEnabled) {
-        mLoggingEnabled = loggingEnabled;
-    }
-    
-    @Override
-    public Logger getLogger() {
-        return new Logger() {
-            
-            @Override
-            public void log(String message, LogLevel level) {
-                if (mLoggingEnabled) {
-                    System.out.println("LOG: " + level.toString() + ": " + message);
-                }
-            }
-        };
+        this.loggingEnabled = loggingEnabled;
     }
 
     @Override
     public String getServerUrl() {
-        return mServerUrl;
+        return serverUrl;
     }
 
     @Override
@@ -55,15 +40,15 @@ public class JavaTestPlatformContext implements TestPlatformContext {
 
     @Override
     public Future<Void> showMessage(String message) {
-        SignalRFuture<Void> future = new SignalRFuture<Void>();
-        
+        SignalRFuture<Void> future = new SignalRFuture<>();
+
         System.out.println(message);
         System.out.println("Press any key to continue...");
         Scanner scanner = new Scanner(System.in);
         scanner.next();
-        
+
         future.setResult(null);
-        
+
         return future;
     }
 
@@ -76,7 +61,7 @@ public class JavaTestPlatformContext implements TestPlatformContext {
     @Override
     public void sleep(int seconds) throws Exception {
         System.out.println("Sleeping for " + seconds + " seconds...");
-        Thread.sleep(seconds * 1000);
+        Thread.sleep(seconds * 1000L);
         System.out.println("Woke up");
     }
 }

@@ -20,12 +20,9 @@ public class BasicAuthenticationCredentials implements Credentials {
      * Creates a BasicAuthenticationCredentials instance with a username,
      * password and an encoder
      *
-     * @param username
-     *            The username for the credentials
-     * @param password
-     *            The password for the credentials
-     * @param encoder
-     *            The Base64 encoder to use
+     * @param username The username for the credentials
+     * @param password The password for the credentials
+     * @param encoder  The Base64 encoder to use
      */
     public BasicAuthenticationCredentials(String username, String password, Base64Encoder encoder) {
         initialize(username, password, encoder);
@@ -34,13 +31,10 @@ public class BasicAuthenticationCredentials implements Credentials {
     /**
      * Initializes a BasicAuthenticationCredentials instance with a username and
      * a password
-     * 
-     * @param username
-     *            The username for the credentials
-     * @param password
-     *            The password for the credentials
-     * @param encoder
-     *            The Base64 encoder to use
+     *
+     * @param username The username for the credentials
+     * @param password The password for the credentials
+     * @param encoder  The Base64 encoder to use
      */
     private void initialize(String username, String password, Base64Encoder encoder) {
         this.username = username;
@@ -61,9 +55,8 @@ public class BasicAuthenticationCredentials implements Credentials {
 
     /**
      * Sets the username for the credentials
-     * 
-     * @param username
-     *            username to set
+     *
+     * @param username username to set
      */
     public void setUsername(String username) {
         this.username = username;
@@ -78,9 +71,8 @@ public class BasicAuthenticationCredentials implements Credentials {
 
     /**
      * Sets the password for the credentials
-     * 
-     * @param password
-     *            password for the credentials
+     *
+     * @param password password for the credentials
      */
     public void setPassword(String password) {
         this.password = password;
@@ -101,9 +93,8 @@ public class BasicAuthenticationCredentials implements Credentials {
     public interface Base64Encoder {
         /**
          * Encodes a byte array
-         * 
-         * @param bytes
-         *            Bytes to encode
+         *
+         * @param bytes Bytes to encode
          * @return The encoded bytes
          */
         public String encodeBytes(byte[] bytes);

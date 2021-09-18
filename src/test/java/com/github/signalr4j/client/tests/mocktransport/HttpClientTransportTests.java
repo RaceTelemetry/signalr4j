@@ -6,26 +6,18 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.tests.mocktransport;
 
-import static org.junit.Assert.*;
-
+import com.github.signalr4j.client.Connection;
+import com.github.signalr4j.client.SignalRFuture;
+import com.github.signalr4j.client.tests.util.*;
+import com.github.signalr4j.client.transport.ClientTransport;
+import com.github.signalr4j.client.transport.NegotiationResponse;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.UUID;
 
-import com.github.signalr4j.client.Action;
-import com.github.signalr4j.client.ErrorCallback;
-import com.github.signalr4j.client.Connection;
-import com.github.signalr4j.client.SignalRFuture;
-import com.github.signalr4j.client.tests.util.MockHttpConnection;
-import com.github.signalr4j.client.tests.util.MockConnection;
-import com.github.signalr4j.client.tests.util.MultiResult;
-import com.github.signalr4j.client.tests.util.Sync;
-import com.github.signalr4j.client.tests.util.TransportType;
-import com.github.signalr4j.client.tests.util.Utils;
-import com.github.signalr4j.client.transport.ClientTransport;
-import com.github.signalr4j.client.transport.DataResultCallback;
-import com.github.signalr4j.client.transport.NegotiationResponse;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public abstract class HttpClientTransportTests {
 
@@ -36,7 +28,7 @@ public abstract class HttpClientTransportTests {
         final MockHttpConnection httpConnection = new MockHttpConnection();
         ClientTransport transport = Utils.createTransport(getTransportType(), httpConnection);
 
-        Connection connection = new Connection("http://myUrl.com/");
+        Connection connection = new Connection("https://myUrl.com/");
         SignalRFuture<NegotiationResponse> future = transport.negotiate(connection);
 
         NegotiationResponse negotiation = Utils.getDefaultNegotiationResponse();
@@ -48,7 +40,7 @@ public abstract class HttpClientTransportTests {
 
         Utils.finishMessage(entry);
 
-        NegotiationResponse negotiationResponse = null;
+        NegotiationResponse negotiationResponse;
 
         negotiationResponse = future.get();
 
@@ -57,7 +49,8 @@ public abstract class HttpClientTransportTests {
         assertEquals(negotiation.getProtocolVersion(), negotiationResponse.getProtocolVersion());
     }
 
-    protected void testSend() throws Exception {
+    @Test
+    public void testSend() throws Exception {
         final MockHttpConnection httpConnection = new MockHttpConnection();
         ClientTransport transport = Utils.createTransport(getTransportType(), httpConnection);
 
@@ -68,13 +61,9 @@ public abstract class HttpClientTransportTests {
 
         final String dataLock = "dataLock" + getTransportType().toString();
 
-        SignalRFuture<Void> send = transport.send(connection, dataToSend, new DataResultCallback() {
-
-            @Override
-            public void onData(String receivedData) {
-                result.stringResult = receivedData.trim();
-                Sync.complete(dataLock);
-            }
+        SignalRFuture<Void> send = transport.send(connection, dataToSend, receivedData -> {
+            result.stringResult = receivedData.trim();
+            Sync.complete(dataLock);
         });
 
         MockHttpConnection.RequestEntry entry = httpConnection.getRequest();
@@ -105,13 +94,7 @@ public abstract class HttpClientTransportTests {
         final String connectLock = "connectLock" + getTransportType().toString();
 
         SignalRFuture<Void> abort = transport.abort(connection);
-        abort.done(new Action<Void>() {
-
-            @Override
-            public void run(Void obj) throws Exception {
-                Sync.complete(connectLock);
-            }
-        });
+        abort.done(obj -> Sync.complete(connectLock));
 
         MockHttpConnection.RequestEntry entry = httpConnection.getRequest();
         entry.response.writeLine(entry.request.getContent());
@@ -133,27 +116,17 @@ public abstract class HttpClientTransportTests {
         final MockHttpConnection httpConnection = new MockHttpConnection();
         ClientTransport transport = Utils.createTransport(getTransportType(), httpConnection);
 
-        Connection connection = new Connection("http://myUrl.com/");
+        Connection connection = new Connection("https://myUrl.com/");
         SignalRFuture<NegotiationResponse> future = transport.negotiate(connection);
 
         final MultiResult result = new MultiResult();
         result.booleanResult = false;
-        future.onError(new ErrorCallback() {
-
-            @Override
-            public void onError(Throwable error) {
-                result.booleanResult = true;
-                Sync.complete("invalidNegotiationData");
-            }
+        future.onError(error -> {
+            result.booleanResult = true;
+            Sync.complete("invalidNegotiationData");
         });
 
-        future.done(new Action<NegotiationResponse>() {
-
-            @Override
-            public void run(NegotiationResponse obj) throws Exception {
-                Sync.complete("invalidNegotiationData");
-            }
-        });
+        future.done(obj -> Sync.complete("invalidNegotiationData"));
 
         String invalidNegotiationContent = "bad-data-123";
 
@@ -173,27 +146,17 @@ public abstract class HttpClientTransportTests {
         final MockHttpConnection httpConnection = new MockHttpConnection();
         ClientTransport transport = Utils.createTransport(getTransportType(), httpConnection);
 
-        Connection connection = new Connection("http://myUrl.com/");
+        Connection connection = new Connection("https://myUrl.com/");
         SignalRFuture<NegotiationResponse> future = transport.negotiate(connection);
 
         final MultiResult result = new MultiResult();
         result.booleanResult = false;
-        future.onError(new ErrorCallback() {
-
-            @Override
-            public void onError(Throwable error) {
-                result.booleanResult = true;
-                Sync.complete("invalidNegotiationData");
-            }
+        future.onError(error -> {
+            result.booleanResult = true;
+            Sync.complete("invalidNegotiationData");
         });
 
-        future.done(new Action<NegotiationResponse>() {
-
-            @Override
-            public void run(NegotiationResponse obj) throws Exception {
-                Sync.complete("invalidNegotiationData");
-            }
-        });
+        future.done(obj -> Sync.complete("invalidNegotiationData"));
 
         String invalidNegotiationContent = "{\"myValue\":\"bad-data-123\"}";
 

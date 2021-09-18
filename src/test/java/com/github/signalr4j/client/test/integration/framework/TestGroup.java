@@ -11,187 +11,187 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public abstract class TestGroup {
-	List<TestCase> mTestCases;
-	String mName;
-	TestStatus mStatus;
-	ConcurrentLinkedQueue<TestCase> mTestRunQueue;
-	boolean mNewTestRun;
-	
-	public TestGroup(String name) {
-		mName = name;
-		mStatus = TestStatus.NotRun;
-		mTestCases = new ArrayList<TestCase>();
-		mTestRunQueue = new ConcurrentLinkedQueue<TestCase>();
-		mNewTestRun = false;
-	}
+    List<TestCase> testCases;
+    String name;
+    TestStatus status;
+    ConcurrentLinkedQueue<TestCase> testRunQueue;
+    boolean newTestRun;
 
-	public TestStatus getStatus() {
-		return mStatus;
-	}
+    public TestGroup(String name) {
+        this.name = name;
+        status = TestStatus.NOT_RUN;
+        testCases = new ArrayList<>();
+        testRunQueue = new ConcurrentLinkedQueue<>();
+        newTestRun = false;
+    }
 
-	public List<TestCase> getTestCases() {
-		return mTestCases;
-	}
+    public TestStatus getStatus() {
+        return status;
+    }
 
-	protected void addTest(TestCase testCase) {
-		mTestCases.add(testCase);
-	}
+    public List<TestCase> getTestCases() {
+        return testCases;
+    }
 
-	
-	public void runTests(TestExecutionCallback callback) {
-		List<TestCase> testsToRun = new ArrayList<TestCase>();
-		
-		for (int i = 0; i < mTestCases.size(); i++) {
-			if (mTestCases.get(i).isEnabled()) {
-				testsToRun.add(mTestCases.get(i));
-			}
-		}
-
-		if (testsToRun.size() > 0) {
-			runTests(testsToRun, callback);
-		}
-	}
-	
-	
-	public void runTests(List<TestCase> testsToRun, final TestExecutionCallback callback) {
-		try {
-			onPreExecute();
-		} catch (Exception e) {
-			mStatus = TestStatus.Failed;
-			if (callback != null)
-				callback.onTestGroupComplete(this, null);
-			return;
-		}
-		
-		final TestRunStatus testRunStatus = new TestRunStatus();
-
-		mNewTestRun = true;
-		
-		int oldQueueSize = mTestRunQueue.size();
-		mTestRunQueue.clear();
-		mTestRunQueue.addAll(testsToRun);
-		cleanTestsState();
-		testRunStatus.results.clear();
-		mStatus = TestStatus.NotRun;
-		
-		if (oldQueueSize == 0) {
-			executeNextTest(callback, testRunStatus);
-		}
-	}
+    protected void addTest(TestCase testCase) {
+        testCases.add(testCase);
+    }
 
 
-	private void cleanTestsState() {
-		for (TestCase test : mTestRunQueue) {
-			test.setStatus(TestStatus.NotRun);
-			test.clearLog();
-		}
-	}
-	
-	private void executeNextTest(final TestExecutionCallback callback, final TestRunStatus testRunStatus) {
-		mNewTestRun = false;
-		final TestGroup group = this;
+    public void runTests(TestExecutionCallback callback) {
+        List<TestCase> testsToRun = new ArrayList<>();
 
-		try {
-			TestCase nextTest = mTestRunQueue.poll();
-			if (nextTest != null) {
-				nextTest.run(new TestExecutionCallback() {
-					@Override
-					public void onTestStart(TestCase test) {
-						if (!mNewTestRun && callback != null)
-							callback.onTestStart(test);
-					}
+        for (TestCase testCase : testCases) {
+            if (testCase.isEnabled()) {
+                testsToRun.add(testCase);
+            }
+        }
 
-					@Override
-					public void onTestGroupComplete(TestGroup group, List<TestResult> results) {
-						if (!mNewTestRun && callback != null)
-							callback.onTestGroupComplete(group, results);
-					}
+        if (testsToRun.size() > 0) {
+            runTests(testsToRun, callback);
+        }
+    }
 
-					@Override
-					public void onTestComplete(TestCase test, TestResult result) {
-						if (mNewTestRun) {
-							cleanTestsState();
-							testRunStatus.results.clear();
-							mStatus = TestStatus.NotRun;
-						} else {
-							if (test.getExpectedExceptionClass() != null) {
-								if (result.getException() != null && result.getException().getClass() == test.getExpectedExceptionClass()) {
-									result.setStatus(TestStatus.Passed);
-								} else {
-									result.setStatus(TestStatus.Failed);
-								}
-							}
-		
-							test.setStatus(result.getStatus());
-							testRunStatus.results.add(result);
-		
-							if (callback != null)
-								callback.onTestComplete(test, result);
-						}
-						
-						executeNextTest(callback, testRunStatus);
-					}
-				});
-				
-				
-			} else {
-				// end run
-				
-				try {
-					onPostExecute();
-				} catch (Exception e) {
-					mStatus = TestStatus.Failed;
-				}
-				
-				// if at least one test failed, the test group
-				// failed
-				if (mStatus != TestStatus.Failed) {
-					mStatus = TestStatus.Passed;
-					for (TestResult r : testRunStatus.results) {
-						if (r.getStatus() == TestStatus.Failed) {
-							mStatus = TestStatus.Failed;
-							break;
-						}
-					}
-				}
 
-				if (callback != null)
-					callback.onTestGroupComplete(group, testRunStatus.results);
-			}
-			
-			
-		} catch (Exception e) {
-			if (callback != null)
-				callback.onTestGroupComplete(this, testRunStatus.results);
-		}
-	}
+    public void runTests(List<TestCase> testsToRun, final TestExecutionCallback callback) {
+        try {
+            onPreExecute();
+        } catch (Exception e) {
+            status = TestStatus.FAILED;
+            if (callback != null)
+                callback.onTestGroupComplete(this, null);
+            return;
+        }
 
-	public String getName() {
-		return mName;
-	}
+        final TestRunStatus testRunStatus = new TestRunStatus();
 
-	protected void setName(String name) {
-		mName = name;
-	}
+        newTestRun = true;
 
-	@Override
-	public String toString() {
-		return getName();
-	}
+        int oldQueueSize = testRunQueue.size();
+        testRunQueue.clear();
+        testRunQueue.addAll(testsToRun);
+        cleanTestsState();
+        testRunStatus.results.clear();
+        status = TestStatus.NOT_RUN;
 
-	public void onPreExecute() {
+        if (oldQueueSize == 0) {
+            executeNextTest(callback, testRunStatus);
+        }
+    }
 
-	}
 
-	public void onPostExecute() {
+    private void cleanTestsState() {
+        for (TestCase test : testRunQueue) {
+            test.setStatus(TestStatus.NOT_RUN);
+            test.clearLog();
+        }
+    }
 
-	}
+    private void executeNextTest(final TestExecutionCallback callback, final TestRunStatus testRunStatus) {
+        newTestRun = false;
+        final TestGroup group = this;
 
-	private class TestRunStatus {
-		public List<TestResult> results;
+        try {
+            TestCase nextTest = testRunQueue.poll();
+            if (nextTest != null) {
+                nextTest.run(new TestExecutionCallback() {
+                    @Override
+                    public void onTestStart(TestCase test) {
+                        if (!newTestRun && callback != null)
+                            callback.onTestStart(test);
+                    }
 
-		public TestRunStatus() {
-			results = new ArrayList<TestResult>();
-		}
-	}
+                    @Override
+                    public void onTestGroupComplete(TestGroup group, List<TestResult> results) {
+                        if (!newTestRun && callback != null)
+                            callback.onTestGroupComplete(group, results);
+                    }
+
+                    @Override
+                    public void onTestComplete(TestCase test, TestResult result) {
+                        if (newTestRun) {
+                            cleanTestsState();
+                            testRunStatus.results.clear();
+                            status = TestStatus.NOT_RUN;
+                        } else {
+                            if (test.getExpectedExceptionClass() != null) {
+                                if (result.getException() != null && result.getException().getClass() == test.getExpectedExceptionClass()) {
+                                    result.setStatus(TestStatus.PASSED);
+                                } else {
+                                    result.setStatus(TestStatus.FAILED);
+                                }
+                            }
+
+                            test.setStatus(result.getStatus());
+                            testRunStatus.results.add(result);
+
+                            if (callback != null)
+                                callback.onTestComplete(test, result);
+                        }
+
+                        executeNextTest(callback, testRunStatus);
+                    }
+                });
+
+
+            } else {
+                // end run
+
+                try {
+                    onPostExecute();
+                } catch (Exception e) {
+                    status = TestStatus.FAILED;
+                }
+
+                // if at least one test failed, the test group
+                // failed
+                if (status != TestStatus.FAILED) {
+                    status = TestStatus.PASSED;
+                    for (TestResult r : testRunStatus.results) {
+                        if (r.getStatus() == TestStatus.FAILED) {
+                            status = TestStatus.FAILED;
+                            break;
+                        }
+                    }
+                }
+
+                if (callback != null)
+                    callback.onTestGroupComplete(group, testRunStatus.results);
+            }
+
+
+        } catch (Exception e) {
+            if (callback != null)
+                callback.onTestGroupComplete(this, testRunStatus.results);
+        }
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    protected void setName(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return getName();
+    }
+
+    public void onPreExecute() {
+
+    }
+
+    public void onPostExecute() {
+
+    }
+
+    private static class TestRunStatus {
+        public List<TestResult> results;
+
+        public TestRunStatus() {
+            results = new ArrayList<>();
+        }
+    }
 }

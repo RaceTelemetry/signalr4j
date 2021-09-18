@@ -6,12 +6,10 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.tests.mocktransport;
 
-import com.github.signalr4j.client.NullLogger;
 import com.github.signalr4j.client.SignalRFuture;
 import com.github.signalr4j.client.tests.util.*;
 import com.github.signalr4j.client.tests.util.MockHttpConnection.RequestEntry;
 import com.github.signalr4j.client.transport.ConnectionType;
-import com.github.signalr4j.client.transport.DataResultCallback;
 import com.github.signalr4j.client.transport.ServerSentEventsTransport;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,9 +25,9 @@ public class ServerSentEventsTransportTests extends HttpClientTransportTests {
     }
 
     @Test
-    public void testSupportKeepAlive() throws Exception {
+    public void testSupportKeepAlive() {
         MockHttpConnection httpConnection = new MockHttpConnection();
-        ServerSentEventsTransport transport = new ServerSentEventsTransport(new NullLogger(), httpConnection);
+        ServerSentEventsTransport transport = new ServerSentEventsTransport(httpConnection);
 
         assertTrue(transport.supportKeepAlive());
     }
@@ -38,7 +36,7 @@ public class ServerSentEventsTransportTests extends HttpClientTransportTests {
     public void testStart() throws Exception {
 
         MockHttpConnection httpConnection = new MockHttpConnection();
-        ServerSentEventsTransport transport = new ServerSentEventsTransport(new NullLogger(), httpConnection);
+        ServerSentEventsTransport transport = new ServerSentEventsTransport(httpConnection);
 
         MockConnection connection = new MockConnection();
 
@@ -46,13 +44,9 @@ public class ServerSentEventsTransportTests extends HttpClientTransportTests {
 
         final String dataLock = "dataLock" + getTransportType().toString();
 
-        SignalRFuture<Void> future = transport.start(connection, ConnectionType.INITIAL_CONNECTION, new DataResultCallback() {
-
-            @Override
-            public void onData(String data) {
-                result.stringResult = data;
-                Sync.complete(dataLock);
-            }
+        SignalRFuture<Void> future = transport.start(connection, ConnectionType.INITIAL_CONNECTION, data -> {
+            result.stringResult = data;
+            Sync.complete(dataLock);
         });
 
         RequestEntry entry = httpConnection.getRequest();
@@ -77,7 +71,7 @@ public class ServerSentEventsTransportTests extends HttpClientTransportTests {
 
     @Override
     protected TransportType getTransportType() {
-        return TransportType.ServerSentEvents;
+        return TransportType.SERVER_SENT_EVENTS;
     }
 
 }

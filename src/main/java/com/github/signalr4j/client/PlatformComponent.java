@@ -12,7 +12,7 @@ public interface PlatformComponent {
     /**
      * Returns a platform-specific HttpConnection
      */
-    public HttpConnection createHttpConnection(Logger logger);
+    public HttpConnection createHttpConnection();
 
     /**
      * Returns a platform-specific Operating System name

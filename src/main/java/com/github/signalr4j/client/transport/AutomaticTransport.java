@@ -6,7 +6,9 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.transport;
 
-import com.github.signalr4j.client.*;
+import com.github.signalr4j.client.ConnectionBase;
+import com.github.signalr4j.client.ErrorCallback;
+import com.github.signalr4j.client.SignalRFuture;
 import com.github.signalr4j.client.http.HttpConnection;
 
 import java.util.ArrayList;
@@ -17,45 +19,32 @@ import java.util.List;
  */
 public class AutomaticTransport extends HttpClientTransport {
 
-    private List<ClientTransport> transports;
+    private final List<ClientTransport> transports = new ArrayList<>();
     private ClientTransport realTransport;
 
-    /**
-     * Initializes the transport with a NullLogger
-     */
-    public AutomaticTransport() {
-        this(new NullLogger());
-    }
 
     /**
      * Initializes the transport with a logger
-     * 
-     * @param logger
-     *            logger to log actions
      */
-    public AutomaticTransport(Logger logger) {
-        super(logger);
-        initialize(logger);
+    public AutomaticTransport() {
+        super();
+        initialize();
     }
 
     /**
      * Initializes the transport with a logger and an httpConnection
-     * 
-     * @param logger
-     *            the logger
-     * @param httpConnection
-     *            the httpConnection
+     *
+     * @param httpConnection the httpConnection
      */
-    public AutomaticTransport(Logger logger, HttpConnection httpConnection) {
-        super(logger, httpConnection);
-        initialize(logger);
+    public AutomaticTransport(HttpConnection httpConnection) {
+        super(httpConnection);
+        initialize();
     }
 
-    private void initialize(Logger logger) {
-        transports = new ArrayList<>();
-        transports.add(new WebsocketTransport(logger));
-        transports.add(new ServerSentEventsTransport(logger));
-        transports.add(new LongPollingTransport(logger));
+    private void initialize() {
+        transports.add(new WebsocketTransport());
+        transports.add(new ServerSentEventsTransport());
+        transports.add(new LongPollingTransport());
     }
 
     @Override
@@ -77,7 +66,7 @@ public class AutomaticTransport extends HttpClientTransport {
     }
 
     private void resolveTransport(final ConnectionBase connection, final ConnectionType connectionType, final DataResultCallback callback,
-            final int currentTransportIndex, final SignalRFuture<Void> startFuture) {
+                                  final int currentTransportIndex, final SignalRFuture<Void> startFuture) {
         final ClientTransport currentTransport = transports.get(currentTransportIndex);
 
         final SignalRFuture<Void> transportStart = currentTransport.start(connection, connectionType, callback);
@@ -96,7 +85,7 @@ public class AutomaticTransport extends HttpClientTransport {
                 return;
             }
 
-            log(String.format("Auto: Faild to connect using transport %s. %s", currentTransport.getName(), error.toString()), LogLevel.INFORMATION);
+            LOGGER.debug("Auto: Failed to connect using transport {}. {}", currentTransport.getName(), error.toString());
             int next = currentTransportIndex + 1;
             if (next < transports.size()) {
                 resolveTransport(connection, connectionType, callback, next, startFuture);

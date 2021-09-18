@@ -40,9 +40,8 @@ public class HttpConnectionFuture extends SignalRFuture<Void> {
 
     /**
      * Triggers the timeout error
-     * 
-     * @param error
-     *            The error
+     *
+     * @param error The error
      */
     public void triggerTimeout(Throwable error) {
         synchronized (timeoutLock) {
@@ -61,9 +60,8 @@ public class HttpConnectionFuture extends SignalRFuture<Void> {
     public interface ResponseCallback {
         /**
          * Callback invoked when a response is returned by the request
-         * 
-         * @param response
-         *            The returned response
+         *
+         * @param response The returned response
          */
         public void onResponse(Response response) throws Exception;
     }

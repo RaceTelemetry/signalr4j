@@ -9,9 +9,9 @@ package com.github.signalr4j.client.test.integration.framework;
 import java.util.List;
 
 public interface TestExecutionCallback {
-	public void onTestStart(TestCase test);
+    void onTestStart(TestCase test);
 
-	public void onTestComplete(TestCase test, TestResult result);
+    void onTestComplete(TestCase test, TestResult result);
 
-	public void onTestGroupComplete(TestGroup group, List<TestResult> results);
+    void onTestGroupComplete(TestGroup group, List<TestResult> results);
 }

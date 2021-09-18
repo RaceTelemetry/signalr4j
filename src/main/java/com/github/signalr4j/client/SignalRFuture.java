@@ -50,9 +50,8 @@ public class SignalRFuture<V> implements Future<V> {
 
     /**
      * Sets a result to the future and finishes its execution
-     * 
-     * @param result
-     *            The future result
+     *
+     * @param result The future result
      */
     public void setResult(V result) {
         synchronized (doneLock) {
@@ -75,7 +74,7 @@ public class SignalRFuture<V> implements Future<V> {
 
     /**
      * Indicates if the operation is cancelled
-     * 
+     *
      * @return True if the operation is cancelled
      */
     public boolean isCancelled() {
@@ -120,9 +119,8 @@ public class SignalRFuture<V> implements Future<V> {
     /**
      * Handles the completion of the Future. If the future was already
      * completed, it triggers the handler right away.
-     * 
-     * @param action
-     *            The handler
+     *
+     * @param action The handler
      */
     public SignalRFuture<V> done(Action<V> action) {
         synchronized (doneLock) {
@@ -144,9 +142,8 @@ public class SignalRFuture<V> implements Future<V> {
      * Handles error during the execution of the Future. If it's the first time
      * the method is invoked on the object and errors were already triggered,
      * the handler will be called once per error, right away.
-     * 
-     * @param errorCallback
-     *            The handler
+     *
+     * @param errorCallback The handler
      */
     public SignalRFuture<V> onError(ErrorCallback errorCallback) {
         synchronized (errorLock) {
@@ -164,9 +161,8 @@ public class SignalRFuture<V> implements Future<V> {
 
     /**
      * Triggers an error for the Future
-     * 
-     * @param error
-     *            The error
+     *
+     * @param error The error
      */
     public void triggerError(Throwable error) {
         synchronized (errorLock) {
@@ -184,7 +180,7 @@ public class SignalRFuture<V> implements Future<V> {
 
     /**
      * Indicates if an error was triggered
-     * 
+     *
      * @return True if an error was triggered
      */
     public boolean errorWasTriggered() {

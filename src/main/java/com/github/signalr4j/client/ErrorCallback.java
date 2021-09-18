@@ -9,9 +9,8 @@ package com.github.signalr4j.client;
 public interface ErrorCallback {
     /**
      * Callback invoked when an error is found
-     * 
-     * @param error
-     *            The error
+     *
+     * @param error The error
      */
     public void onError(Throwable error);
 }

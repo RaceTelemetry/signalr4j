@@ -6,7 +6,8 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.tests.util;
 
-import java.io.IOException;
+import com.github.signalr4j.client.http.Response;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,58 +15,56 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
 
-import com.github.signalr4j.client.http.Response;
-
 public class MockResponse implements Response {
 
-    Semaphore mSemaphore = new Semaphore(0);
+    Semaphore semaphore = new Semaphore(0);
 
-    Object mLinesLock = new Object();
-    Queue<String> mLines = new ConcurrentLinkedQueue<String>();
-    Map<String, List<String>> mHeaders = new HashMap<String, List<String>>();
-    int mStatus;
-    boolean mFinished = false;
+    final Object linesLock = new Object();
+    final Queue<String> lines = new ConcurrentLinkedQueue<>();
+    Map<String, List<String>> headers = new HashMap<>();
+    int status;
+    boolean finished = false;
 
     public MockResponse(int status) {
-        mStatus = status;
+        this.status = status;
     }
 
     public void setStatus(int status) {
-        mStatus = status;
+        this.status = status;
     }
 
     public void writeLine(String line) {
         if (line != null) {
-            synchronized (mLinesLock) {
-                mLines.add(line);
+            synchronized (linesLock) {
+                lines.add(line);
             }
-            mSemaphore.release();
+            semaphore.release();
         }
     }
 
     public void finishWriting() {
-        mFinished = true;
+        finished = true;
     }
 
     public void setHeaders(Map<String, List<String>> headers) {
-        mHeaders = new HashMap<String, List<String>>();
+        this.headers = new HashMap<>(headers);
     }
 
     @Override
     public Map<String, List<String>> getHeaders() {
-        return new HashMap<String, List<String>>(mHeaders);
+        return new HashMap<>(headers);
     }
 
     @Override
     public List<String> getHeader(String headerName) {
-        return mHeaders.get(headerName);
+        return headers.get(headerName);
     }
 
     @Override
-    public String readToEnd() throws IOException {
+    public String readToEnd() {
         StringBuilder sb = new StringBuilder();
 
-        while (!mFinished || !mLines.isEmpty()) {
+        while (!finished || !lines.isEmpty()) {
             String line = readLine();
             sb.append(line);
             sb.append("\n");
@@ -75,35 +74,34 @@ public class MockResponse implements Response {
     }
 
     @Override
-    public String readLine() throws IOException {
-        if (mFinished) {
-            if (mLines.isEmpty()) {
+    public String readLine() {
+        if (finished) {
+            if (lines.isEmpty()) {
                 return null;
             } else {
-                synchronized (mLinesLock) {
-                    return mLines.poll();
+                synchronized (linesLock) {
+                    return lines.poll();
                 }
             }
         } else {
             try {
-                mSemaphore.acquire();
-            } catch (InterruptedException e) {
+                semaphore.acquire();
+            } catch (InterruptedException ignored) {
             }
 
-            synchronized (mLinesLock) {
-                String line = mLines.poll();
-                return line;
+            synchronized (linesLock) {
+                return lines.poll();
             }
         }
     }
 
     @Override
     public int getStatus() {
-        return mStatus;
+        return status;
     }
 
     @Override
-    public byte[] readAllBytes() throws IOException {
+    public byte[] readAllBytes() {
         return readToEnd().getBytes();
     }
 

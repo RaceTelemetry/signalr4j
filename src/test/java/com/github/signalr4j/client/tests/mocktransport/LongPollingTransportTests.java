@@ -6,11 +6,9 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.tests.mocktransport;
 
-import com.github.signalr4j.client.NullLogger;
 import com.github.signalr4j.client.tests.util.*;
 import com.github.signalr4j.client.tests.util.MockHttpConnection.RequestEntry;
 import com.github.signalr4j.client.transport.ConnectionType;
-import com.github.signalr4j.client.transport.DataResultCallback;
 import com.github.signalr4j.client.transport.LongPollingTransport;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -26,9 +24,9 @@ public class LongPollingTransportTests extends HttpClientTransportTests {
     }
 
     @Test
-    public void testSupportKeepAlive() throws Exception {
+    public void testSupportKeepAlive() {
         MockHttpConnection httpConnection = new MockHttpConnection();
-        LongPollingTransport transport = new LongPollingTransport(new NullLogger(), httpConnection);
+        LongPollingTransport transport = new LongPollingTransport(httpConnection);
 
         assertFalse(transport.supportKeepAlive());
     }
@@ -38,7 +36,7 @@ public class LongPollingTransportTests extends HttpClientTransportTests {
     public void testStart() throws Exception {
 
         MockHttpConnection httpConnection = new MockHttpConnection();
-        LongPollingTransport transport = new LongPollingTransport(new NullLogger(), httpConnection);
+        LongPollingTransport transport = new LongPollingTransport(httpConnection);
 
         MockConnection connection = new MockConnection();
 
@@ -48,20 +46,16 @@ public class LongPollingTransportTests extends HttpClientTransportTests {
         final MultiResult result = new MultiResult();
         result.stringResult = "";
         result.booleanResult = true;
-        result.futureResult = transport.start(connection, ConnectionType.INITIAL_CONNECTION, new DataResultCallback() {
+        result.futureResult = transport.start(connection, ConnectionType.INITIAL_CONNECTION, data -> {
+            result.listResult.add(data);
 
-            @Override
-            public void onData(String data) {
-                result.listResult.add(data);
-
-                if (result.booleanResult) {
-                    result.booleanResult = false;
-                    Sync.complete(dataLock1);
-                } else {
-                    Sync.complete(dataLock2);
-                    // the second time, trigger the end of the long polling
-                    result.futureResult.cancel();
-                }
+            if (result.booleanResult) {
+                result.booleanResult = false;
+                Sync.complete(dataLock1);
+            } else {
+                Sync.complete(dataLock2);
+                // the second time, trigger the end of the long polling
+                result.futureResult.cancel();
             }
         });
 
@@ -101,7 +95,7 @@ public class LongPollingTransportTests extends HttpClientTransportTests {
 
     @Override
     protected TransportType getTransportType() {
-        return TransportType.LongPolling;
+        return TransportType.LONG_POLLING;
     }
 
 }

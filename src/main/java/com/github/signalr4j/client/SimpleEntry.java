@@ -21,10 +21,8 @@ public class SimpleEntry<K, V> implements Entry<K, V> {
     /**
      * Initializes the SimpleEntry
      *
-     * @param key
-     *            Entry key
-     * @param value
-     *            Entry value
+     * @param key   Entry key
+     * @param value Entry value
      */
     public SimpleEntry(K key, V value) {
         this.key = key;

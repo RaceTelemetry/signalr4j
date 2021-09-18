@@ -14,8 +14,8 @@ import com.github.signalr4j.client.transport.DataResultCallback;
 import com.github.signalr4j.client.transport.NegotiationResponse;
 
 public class MockClientTransport implements ClientTransport {
-    private boolean mSupportKeepAlive = false;
-    private int mAbortInvocations = 0;
+    private boolean supportKeepAlive = false;
+    private int abortInvocations = 0;
 
     public SignalRFuture<NegotiationResponse> negotiationFuture;
     public TransportOperation startOperation;
@@ -23,7 +23,7 @@ public class MockClientTransport implements ClientTransport {
     public SignalRFuture<Void> abortFuture;
 
     public void setSupportKeepAlive(boolean support) {
-        mSupportKeepAlive = support;
+        supportKeepAlive = support;
     }
 
     @Override
@@ -33,19 +33,19 @@ public class MockClientTransport implements ClientTransport {
 
     @Override
     public boolean supportKeepAlive() {
-        return mSupportKeepAlive;
+        return supportKeepAlive;
     }
 
     @Override
     public SignalRFuture<NegotiationResponse> negotiate(ConnectionBase connection) {
-        negotiationFuture = new SignalRFuture<NegotiationResponse>();
+        negotiationFuture = new SignalRFuture<>();
         return negotiationFuture;
     }
 
     @Override
     public SignalRFuture<Void> start(ConnectionBase connection, ConnectionType connectionType, DataResultCallback callback) {
         startOperation = new TransportOperation();
-        startOperation.future = new SignalRFuture<Void>();
+        startOperation.future = new SignalRFuture<>();
         startOperation.callback = callback;
         return startOperation.future;
     }
@@ -53,7 +53,7 @@ public class MockClientTransport implements ClientTransport {
     @Override
     public SignalRFuture<Void> send(ConnectionBase connection, String data, DataResultCallback callback) {
         sendOperation = new TransportOperation();
-        sendOperation.future = new SignalRFuture<Void>();
+        sendOperation.future = new SignalRFuture<>();
         sendOperation.callback = callback;
         sendOperation.data = data;
         return sendOperation.future;
@@ -61,16 +61,16 @@ public class MockClientTransport implements ClientTransport {
 
     @Override
     public SignalRFuture<Void> abort(ConnectionBase connection) {
-        mAbortInvocations++;
-        abortFuture = new SignalRFuture<Void>();
+        abortInvocations++;
+        abortFuture = new SignalRFuture<>();
         return abortFuture;
     }
 
     public int getAbortInvocations() {
-        return mAbortInvocations;
+        return abortInvocations;
     }
 
-    public class TransportOperation {
+    public static class TransportOperation {
         public SignalRFuture<Void> future;
         public DataResultCallback callback;
         public Object data;

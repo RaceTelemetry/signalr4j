@@ -6,7 +6,9 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.transport;
 
-import com.github.signalr4j.client.*;
+import com.github.signalr4j.client.ConnectionBase;
+import com.github.signalr4j.client.Constants;
+import com.github.signalr4j.client.SignalRFuture;
 import com.github.signalr4j.client.http.HttpConnection;
 import com.github.signalr4j.client.http.Request;
 
@@ -23,24 +25,18 @@ public class ServerSentEventsTransport extends HttpClientTransport {
 
     /**
      * Initializes the transport with a logger
-     * 
-     * @param logger
-     *            Logger to log actions
      */
-    public ServerSentEventsTransport(Logger logger) {
-        super(logger);
+    public ServerSentEventsTransport() {
+        super();
     }
 
     /**
      * Initializes the transport with a logger
-     * 
-     * @param logger
-     *            Logger to log actions
-     * @param httpConnection
-     *            HttpConnection for the transport
+     *
+     * @param httpConnection HttpConnection for the transport
      */
-    public ServerSentEventsTransport(Logger logger, HttpConnection httpConnection) {
-        super(logger, httpConnection);
+    public ServerSentEventsTransport(HttpConnection httpConnection) {
+        super(httpConnection);
     }
 
     @Override
@@ -55,7 +51,7 @@ public class ServerSentEventsTransport extends HttpClientTransport {
 
     @Override
     public SignalRFuture<Void> start(ConnectionBase connection, ConnectionType connectionType, final DataResultCallback callback) {
-        log("Start the communication with the server", LogLevel.INFORMATION);
+        LOGGER.debug("Start the communication with the server");
         String url = connection.getUrl() + (connectionType == ConnectionType.INITIAL_CONNECTION ? "connect" : "reconnect")
                 + TransportHelper.getReceiveQueryString(this, connection);
 
@@ -67,10 +63,10 @@ public class ServerSentEventsTransport extends HttpClientTransport {
 
         connection.prepareRequest(get);
 
-        log("Execute the request", LogLevel.VERBOSE);
+        LOGGER.trace("Execute the request");
         connectionFuture = httpConnection.execute(get, response -> {
             try {
-                log("Response received", LogLevel.VERBOSE);
+                LOGGER.trace("Response received");
                 throwOnInvalidStatusCode(response);
 
                 connectionFuture.setResult(null);
@@ -78,20 +74,20 @@ public class ServerSentEventsTransport extends HttpClientTransport {
                 StringBuilder buffer = new StringBuilder();
                 String line;
 
-                log("Read the response content by line", LogLevel.VERBOSE);
+                LOGGER.trace("Read the response content by line");
                 while ((line = response.readLine()) != null) {
                     buffer.append(line);
                     buffer.append("\n");
                     String currentData = buffer.toString();
                     if (currentData.endsWith(END_OF_SSE_MESSAGE)) {
                         currentData = currentData.trim();
-                        log("Found new data: " + currentData, LogLevel.VERBOSE);
+                        LOGGER.trace("Found new data: {}", currentData);
                         if (currentData.equals(DATA_INITIALIZED)) {
-                            log("Initialization message found", LogLevel.VERBOSE);
+                            LOGGER.trace("Initialization message found");
                         } else {
                             String content = currentData.substring(SSE_DATA_PREFIX_LENGTH).trim();
 
-                            log("Trigger onData: " + content, LogLevel.VERBOSE);
+                            LOGGER.trace("Trigger onData: {}", content);
                             callback.onData(content);
                         }
 

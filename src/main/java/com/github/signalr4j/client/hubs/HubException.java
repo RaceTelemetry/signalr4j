@@ -16,11 +16,9 @@ public class HubException extends Exception {
 
     /**
      * Creates a new Hub exception
-     * 
-     * @param error
-     *            The error message
-     * @param errorData
-     *            The error data
+     *
+     * @param error     The error message
+     * @param errorData The error data
      */
     public HubException(String error, Object errorData) {
         super(error);

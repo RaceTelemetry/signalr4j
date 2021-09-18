@@ -6,11 +6,11 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.http.java;
 
-import com.github.signalr4j.client.LogLevel;
-import com.github.signalr4j.client.Logger;
 import com.github.signalr4j.client.http.HttpConnectionFuture;
 import com.github.signalr4j.client.http.Request;
 import com.github.signalr4j.client.http.StreamResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,71 +24,64 @@ import java.util.Map;
  */
 class NetworkRunnable implements Runnable {
 
-    HttpURLConnection mConnection = null;
-    InputStream mResponseStream = null;
-    Logger mLogger;
-    Request mRequest;
-    HttpConnectionFuture mFuture;
-    HttpConnectionFuture.ResponseCallback mCallback;
+    private static final Logger LOGGER = LoggerFactory.getLogger(NetworkRunnable.class);
 
-    Object mCloseLock = new Object();
+    HttpURLConnection connection = null;
+    InputStream responseStream = null;
+    Request request;
+    HttpConnectionFuture future;
+    HttpConnectionFuture.ResponseCallback callback;
 
     /**
      * Initializes the network runnable
-     * 
-     * @param logger
-     *            logger to log activity
-     * @param request
-     *            The request to execute
-     * @param future
-     *            Future for the operation
-     * @param callback
-     *            Callback to invoke after the request execution
+     *
+     * @param request  The request to execute
+     * @param future   Future for the operation
+     * @param callback Callback to invoke after the request execution
      */
-    public NetworkRunnable(Logger logger, Request request, HttpConnectionFuture future, HttpConnectionFuture.ResponseCallback callback) {
-        mLogger = logger;
-        mRequest = request;
-        mFuture = future;
-        mCallback = callback;
+    public NetworkRunnable(Request request, HttpConnectionFuture future, HttpConnectionFuture.ResponseCallback callback) {
+        this.request = request;
+        this.future = future;
+        this.callback = callback;
     }
 
     @Override
     public void run() {
         try {
             int responseCode = -1;
-            if (!mFuture.isCancelled()) {
-                if (mRequest == null) {
-                    mFuture.triggerError(new IllegalArgumentException("request"));
+            if (!future.isCancelled()) {
+                if (request == null) {
+                    future.triggerError(new IllegalArgumentException("request"));
                     return;
                 }
 
-                mLogger.log("Execute the HTTP Request", LogLevel.VERBOSE);
-                mRequest.log(mLogger);
-                mConnection = createHttpURLConnection(mRequest);
+                LOGGER.trace("Execute the HTTP Request");
+                LOGGER.trace("Request: {}", request);
+                connection = createHttpURLConnection(request);
 
-                mLogger.log("Request executed", LogLevel.VERBOSE);
+                LOGGER.trace("Request executed");
 
-                responseCode = mConnection.getResponseCode();
+                responseCode = connection.getResponseCode();
 
                 if (responseCode < 400) {
-                    mResponseStream = mConnection.getInputStream();
+                    responseStream = connection.getInputStream();
                 } else {
-                    mResponseStream = mConnection.getErrorStream();
+                    responseStream = connection.getErrorStream();
                 }
             }
-        
-            if (mResponseStream != null && !mFuture.isCancelled()) {
-                mCallback.onResponse(new StreamResponse(mResponseStream, responseCode, mConnection.getHeaderFields()));
-                mFuture.setResult(null);
+
+            if (responseStream != null && !future.isCancelled()) {
+                callback.onResponse(new StreamResponse(responseStream, responseCode, connection.getHeaderFields()));
+                future.setResult(null);
             }
         } catch (Throwable e) {
-            if (!mFuture.isCancelled()) {
-                if (mConnection != null) {
-                    mConnection.disconnect();
+            if (!future.isCancelled()) {
+                if (connection != null) {
+                    connection.disconnect();
                 }
 
-                mLogger.log("Error executing request: " + e.getMessage(), LogLevel.CRITICAL);
-                mFuture.triggerError(e);
+                LOGGER.debug("Error executing request: ", e);
+                future.triggerError(e);
             }
         } finally {
             closeStreamAndConnection();
@@ -102,28 +95,26 @@ class NetworkRunnable implements Runnable {
 
         try {
 
-            if (mConnection != null) {
-                mConnection.disconnect();
+            if (connection != null) {
+                connection.disconnect();
             }
-            
-            if (mResponseStream != null) {
-                mResponseStream.close();
+
+            if (responseStream != null) {
+                responseStream.close();
             }
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
     }
 
     /**
      * Creates an HttpURLConnection
-     * 
-     * @param request
-     *            The request info
+     *
+     * @param request The request info
      * @return An HttpURLConnection to execute the request
-     * @throws java.io.IOException
      */
     static HttpURLConnection createHttpURLConnection(Request request) throws IOException {
         URL url = new URL(request.getUrl());
-        
+
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         // the timeout needs for right disconnection.
         // without it when disconnect() calls at NetworkRunnable.closeStreamAndConnection()

@@ -6,39 +6,35 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.tests.mocktransport;
 
-import static org.junit.Assert.*;
-import com.github.signalr4j.client.Action;
-import com.github.signalr4j.client.NullLogger;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.github.signalr4j.client.Connection;
 import com.github.signalr4j.client.hubs.HubConnection;
 import com.github.signalr4j.client.hubs.HubProxy;
 import com.github.signalr4j.client.hubs.Subscription;
-import com.github.signalr4j.client.hubs.SubscriptionHandler2;
 import com.github.signalr4j.client.tests.util.MockClientTransport;
 import com.github.signalr4j.client.tests.util.MultiResult;
 import com.github.signalr4j.client.tests.util.Utils;
-
 import org.junit.Test;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class HubConnectionTests {
 
-    private static final String SERVER_URL = "http://myUrl.com/";
+    private static final String SERVER_URL = "https://myUrl.com/";
 
     @Test
-    public void testConnectionDefaultUrl() throws Exception {
-        HubConnection connection = new HubConnection(SERVER_URL, "", true, new NullLogger());
+    public void testConnectionDefaultUrl() {
+        HubConnection connection = new HubConnection(SERVER_URL, "", true);
 
         assertEquals(SERVER_URL + "signalr/", connection.getUrl());
     }
 
     @Test
-    public void testConnectionData() throws Exception {
+    public void testConnectionData() {
 
-        HubConnection connection = new HubConnection(SERVER_URL, "", true, new NullLogger());
+        HubConnection connection = new HubConnection(SERVER_URL, "", true);
 
         connection.createHubProxy("myProxy1");
         connection.createHubProxy("myProxy2");
@@ -47,10 +43,10 @@ public class HubConnectionTests {
     }
 
     @Test
-    public void testInvoke() throws Exception {
+    public void testInvoke() {
 
         MockClientTransport transport = new MockClientTransport();
-        HubConnection connection = new HubConnection(SERVER_URL, "", true, new NullLogger());
+        HubConnection connection = new HubConnection(SERVER_URL, "", true);
 
         HubProxy proxy = connection.createHubProxy("myProxy1");
 
@@ -70,35 +66,31 @@ public class HubConnectionTests {
         arg.prop1 = arg1;
         arg.prop2 = arg2;
 
-        proxy.invoke(InvocationResult.class, method, arg).done(new Action<InvocationResult>() {
+        proxy.invoke(InvocationResult.class, method, arg).done(result -> {
+            multiResult.booleanResult = true;
 
-            @Override
-            public void run(InvocationResult result) throws Exception {
-                multiResult.booleanResult = true;
-
-                assertEquals(arg1, result.prop1);
-                assertEquals(arg2, result.prop2);
-            }
+            assertEquals(arg1, result.prop1);
+            assertEquals(arg2, result.prop2);
         });
 
         transport.sendOperation.future.setResult(null);
 
-        JsonObject expectedSendData = new JsonObject();
-        expectedSendData.addProperty("I", "0");
-        expectedSendData.addProperty("H", "myProxy1");
-        expectedSendData.addProperty("M", method);
-        JsonArray sentArguments = new JsonArray();
-        JsonObject jsonArg1 = new JsonObject();
-        jsonArg1.addProperty("prop1", arg1);
-        jsonArg1.addProperty("prop2", arg2);
+        ObjectNode expectedSendData = Connection.MAPPER.createObjectNode();
+        expectedSendData.put("I", "0");
+        expectedSendData.put("H", "myProxy1");
+        expectedSendData.put("M", method);
+        ArrayNode sentArguments = Connection.MAPPER.createArrayNode();
+        ObjectNode jsonArg1 = Connection.MAPPER.createObjectNode();
+        jsonArg1.put("prop1", arg1);
+        jsonArg1.put("prop2", arg2);
         sentArguments.add(jsonArg1);
-        expectedSendData.add("A", sentArguments);
+        expectedSendData.set("A", sentArguments);
 
         assertEquals(expectedSendData.toString(), transport.sendOperation.data.toString());
 
-        JsonObject jsonResult = new JsonObject();
-        jsonResult.addProperty("I", "0");
-        jsonResult.add("R", jsonArg1);
+        ObjectNode jsonResult = Connection.MAPPER.createObjectNode();
+        jsonResult.put("I", "0");
+        jsonResult.set("R", jsonArg1);
 
         transport.startOperation.callback.onData(jsonResult.toString());
 
@@ -106,10 +98,10 @@ public class HubConnectionTests {
     }
 
     @Test
-    public void testDynamicSubscriptionHandler() throws Exception {
+    public void testDynamicSubscriptionHandler() {
 
         MockClientTransport transport = new MockClientTransport();
-        HubConnection connection = new HubConnection(SERVER_URL, "", true, new NullLogger());
+        HubConnection connection = new HubConnection(SERVER_URL, "", true);
 
         HubProxy proxy = connection.createHubProxy("myProxy1");
 
@@ -140,30 +132,30 @@ public class HubConnectionTests {
         transport.negotiationFuture.setResult(Utils.getDefaultNegotiationResponse());
         transport.startOperation.future.setResult(null);
 
-        JsonObject message = new JsonObject();
+        ObjectNode message = Connection.MAPPER.createObjectNode();
 
         // message1
-        JsonObject hubMessage1 = new JsonObject();
-        hubMessage1.addProperty("H", "myproxy1");
-        hubMessage1.addProperty("M", "message1");
-        JsonArray jsonArgs = new JsonArray();
-        jsonArgs.add(new JsonPrimitive(pString));
-        jsonArgs.add(new JsonPrimitive(1));
-        hubMessage1.add("A", jsonArgs);
-        JsonArray messageArray = new JsonArray();
+        ObjectNode hubMessage1 = Connection.MAPPER.createObjectNode();
+        hubMessage1.put("H", "myproxy1");
+        hubMessage1.put("M", "message1");
+        ArrayNode jsonArgs = Connection.MAPPER.createArrayNode();
+        jsonArgs.add(pString);
+        jsonArgs.add(1);
+        hubMessage1.set("A", jsonArgs);
+        ArrayNode messageArray = Connection.MAPPER.createArrayNode();
         messageArray.add(hubMessage1);
 
         // message2
-        JsonObject hubMessage2 = new JsonObject();
-        hubMessage2.addProperty("H", "myproxy1");
-        hubMessage2.addProperty("M", "message2");
-        jsonArgs = new JsonArray();
-        jsonArgs.add(new JsonPrimitive(1));
-        jsonArgs.add(new JsonPrimitive(pString));
-        hubMessage2.add("A", jsonArgs);
+        ObjectNode hubMessage2 = Connection.MAPPER.createObjectNode();
+        hubMessage2.put("H", "myproxy1");
+        hubMessage2.put("M", "message2");
+        jsonArgs = Connection.MAPPER.createArrayNode();
+        jsonArgs.add(1);
+        jsonArgs.add(pString);
+        hubMessage2.set("A", jsonArgs);
         messageArray.add(hubMessage2);
 
-        message.add("M", messageArray);
+        message.set("M", messageArray);
 
         transport.startOperation.callback.onData(message.toString());
 
@@ -173,10 +165,10 @@ public class HubConnectionTests {
     }
 
     @Test
-    public void testOnSubscriptionHandler() throws Exception {
+    public void testOnSubscriptionHandler() {
 
         MockClientTransport transport = new MockClientTransport();
-        HubConnection connection = new HubConnection(SERVER_URL, "", true, new NullLogger());
+        HubConnection connection = new HubConnection(SERVER_URL, "", true);
 
         HubProxy proxy = connection.createHubProxy("myProxy1");
 
@@ -185,56 +177,48 @@ public class HubConnectionTests {
         final String pString = "p1";
         final int pInt = 1;
 
-        proxy.on("message1", new SubscriptionHandler2<String, Integer>() {
+        proxy.on("message1", (arg1, arg2) -> {
+            assertEquals(pString, arg1);
+            assertEquals(pInt, (int) arg2);
 
-            @Override
-            public void run(String arg1, Integer arg2) {
-                assertEquals(pString, arg1);
-                assertEquals(pInt, (int) arg2);
-
-                multiResult.listResult.add(1);
-            }
+            multiResult.listResult.add(1);
         }, String.class, Integer.class);
 
-        proxy.on("message2", new SubscriptionHandler2<Integer, String>() {
+        proxy.on("message2", (arg1, arg2) -> {
+            assertEquals(pInt, (int) arg1);
+            assertEquals(pString, arg2);
 
-            @Override
-            public void run(Integer arg1, String arg2) {
-                assertEquals(pInt, (int) arg1);
-                assertEquals(pString, arg2);
-
-                multiResult.listResult.add(2);
-            }
+            multiResult.listResult.add(2);
         }, Integer.class, String.class);
 
         connection.start(transport);
         transport.negotiationFuture.setResult(Utils.getDefaultNegotiationResponse());
         transport.startOperation.future.setResult(null);
 
-        JsonObject message = new JsonObject();
+        ObjectNode message = Connection.MAPPER.createObjectNode();
 
         // message1
-        JsonObject hubMessage1 = new JsonObject();
-        hubMessage1.addProperty("H", "myproxy1");
-        hubMessage1.addProperty("M", "message1");
-        JsonArray jsonArgs = new JsonArray();
-        jsonArgs.add(new JsonPrimitive(pString));
-        jsonArgs.add(new JsonPrimitive(1));
-        hubMessage1.add("A", jsonArgs);
-        JsonArray messageArray = new JsonArray();
+        ObjectNode hubMessage1 = Connection.MAPPER.createObjectNode();
+        hubMessage1.put("H", "myproxy1");
+        hubMessage1.put("M", "message1");
+        ArrayNode jsonArgs = Connection.MAPPER.createArrayNode();
+        jsonArgs.add(pString);
+        jsonArgs.add(1);
+        hubMessage1.set("A", jsonArgs);
+        ArrayNode messageArray = Connection.MAPPER.createArrayNode();
         messageArray.add(hubMessage1);
 
         // message2
-        JsonObject hubMessage2 = new JsonObject();
-        hubMessage2.addProperty("H", "myproxy1");
-        hubMessage2.addProperty("M", "message2");
-        jsonArgs = new JsonArray();
-        jsonArgs.add(new JsonPrimitive(1));
-        jsonArgs.add(new JsonPrimitive(pString));
-        hubMessage2.add("A", jsonArgs);
+        ObjectNode hubMessage2 = Connection.MAPPER.createObjectNode();
+        hubMessage2.put("H", "myproxy1");
+        hubMessage2.put("M", "message2");
+        jsonArgs = Connection.MAPPER.createArrayNode();
+        jsonArgs.add(1);
+        jsonArgs.add(pString);
+        hubMessage2.set("A", jsonArgs);
         messageArray.add(hubMessage2);
 
-        message.add("M", messageArray);
+        message.set("M", messageArray);
 
         transport.startOperation.callback.onData(message.toString());
 
@@ -244,10 +228,10 @@ public class HubConnectionTests {
     }
 
     @Test
-    public void testSubscription() throws Exception {
+    public void testSubscription() {
 
         MockClientTransport transport = new MockClientTransport();
-        HubConnection connection = new HubConnection(SERVER_URL, "", true, new NullLogger());
+        HubConnection connection = new HubConnection(SERVER_URL, "", true);
 
         HubProxy proxy = connection.createHubProxy("myProxy1");
 
@@ -258,58 +242,50 @@ public class HubConnectionTests {
 
         Subscription sub1 = proxy.subscribe("message1");
 
-        sub1.addReceivedHandler(new Action<JsonElement[]>() {
+        sub1.addReceivedHandler(obj -> {
+            assertEquals(pString, obj[0].textValue());
+            assertEquals(pInt, obj[1].intValue());
 
-            @Override
-            public void run(JsonElement[] obj) throws Exception {
-                assertEquals(pString, obj[0].getAsString());
-                assertEquals(pInt, obj[1].getAsInt());
-
-                multiResult.listResult.add(1);
-            }
+            multiResult.listResult.add(1);
         });
 
         Subscription sub2 = proxy.subscribe("message2");
 
-        sub2.addReceivedHandler(new Action<JsonElement[]>() {
+        sub2.addReceivedHandler(obj -> {
+            assertEquals(pInt, obj[0].intValue());
+            assertEquals(pString, obj[1].textValue());
 
-            @Override
-            public void run(JsonElement[] obj) throws Exception {
-                assertEquals(pInt, obj[0].getAsInt());
-                assertEquals(pString, obj[1].getAsString());
-
-                multiResult.listResult.add(2);
-            }
+            multiResult.listResult.add(2);
         });
 
         connection.start(transport);
         transport.negotiationFuture.setResult(Utils.getDefaultNegotiationResponse());
         transport.startOperation.future.setResult(null);
 
-        JsonObject message = new JsonObject();
+        ObjectNode message = Connection.MAPPER.createObjectNode();
 
         // message1
-        JsonObject hubMessage1 = new JsonObject();
-        hubMessage1.addProperty("H", "myproxy1");
-        hubMessage1.addProperty("M", "message1");
-        JsonArray jsonArgs = new JsonArray();
-        jsonArgs.add(new JsonPrimitive(pString));
-        jsonArgs.add(new JsonPrimitive(1));
-        hubMessage1.add("A", jsonArgs);
-        JsonArray messageArray = new JsonArray();
+        ObjectNode hubMessage1 = Connection.MAPPER.createObjectNode();
+        hubMessage1.put("H", "myproxy1");
+        hubMessage1.put("M", "message1");
+        ArrayNode jsonArgs = Connection.MAPPER.createArrayNode();
+        jsonArgs.add(pString);
+        jsonArgs.add(1);
+        hubMessage1.set("A", jsonArgs);
+        ArrayNode messageArray = Connection.MAPPER.createArrayNode();
         messageArray.add(hubMessage1);
 
         // message2
-        JsonObject hubMessage2 = new JsonObject();
-        hubMessage2.addProperty("H", "myproxy1");
-        hubMessage2.addProperty("M", "message2");
-        jsonArgs = new JsonArray();
-        jsonArgs.add(new JsonPrimitive(1));
-        jsonArgs.add(new JsonPrimitive(pString));
-        hubMessage2.add("A", jsonArgs);
+        ObjectNode hubMessage2 = Connection.MAPPER.createObjectNode();
+        hubMessage2.put("H", "myproxy1");
+        hubMessage2.put("M", "message2");
+        jsonArgs = Connection.MAPPER.createArrayNode();
+        jsonArgs.add(1);
+        jsonArgs.add(pString);
+        hubMessage2.set("A", jsonArgs);
         messageArray.add(hubMessage2);
 
-        message.add("M", messageArray);
+        message.set("M", messageArray);
 
         transport.startOperation.callback.onData(message.toString());
 
@@ -319,8 +295,8 @@ public class HubConnectionTests {
     }
 
     @Test
-    public void setHubConnectionHeaders(){
-        HubConnection connection = new HubConnection(SERVER_URL, "", true, new NullLogger());
+    public void setHubConnectionHeaders() {
+        HubConnection connection = new HubConnection(SERVER_URL, "", true);
         connection.getHeaders().put("key", "value");
 
         assertEquals(1, connection.getHeaders().values().size());
@@ -328,10 +304,10 @@ public class HubConnectionTests {
     }
 
     @Test
-    public void testMultipleSubscriptionForEvent() throws Exception {
+    public void testMultipleSubscriptionForEvent() {
 
         MockClientTransport transport = new MockClientTransport();
-        HubConnection connection = new HubConnection(SERVER_URL, "", true, new NullLogger());
+        HubConnection connection = new HubConnection(SERVER_URL, "", true);
 
         HubProxy proxy = connection.createHubProxy("myProxy1");
 
@@ -357,26 +333,26 @@ public class HubConnectionTests {
         transport.negotiationFuture.setResult(Utils.getDefaultNegotiationResponse());
         transport.startOperation.future.setResult(null);
 
-        JsonObject message = new JsonObject();
+        ObjectNode message = Connection.MAPPER.createObjectNode();
 
         // message1
-        JsonObject hubMessage1 = new JsonObject();
-        hubMessage1.addProperty("H", "myproxy1");
-        hubMessage1.addProperty("M", "message1");
-        JsonArray jsonArgs = new JsonArray();
-        jsonArgs.add(new JsonPrimitive(pString));
-        jsonArgs.add(new JsonPrimitive(1));
-        hubMessage1.add("A", jsonArgs);
-        JsonArray messageArray = new JsonArray();
+        ObjectNode hubMessage1 = Connection.MAPPER.createObjectNode();
+        hubMessage1.put("H", "myproxy1");
+        hubMessage1.put("M", "message1");
+        ArrayNode jsonArgs = Connection.MAPPER.createArrayNode();
+        jsonArgs.add(pString);
+        jsonArgs.add(1);
+        hubMessage1.set("A", jsonArgs);
+        ArrayNode messageArray = Connection.MAPPER.createArrayNode();
         messageArray.add(hubMessage1);
-        message.add("M", messageArray);
+        message.set("M", messageArray);
 
         transport.startOperation.callback.onData(message.toString());
 
         assertEquals(2, multiResult.listResult.size());
     }
 
-    public class InvocationResult {
+    public static class InvocationResult {
         public String prop1;
         public int prop2;
     }

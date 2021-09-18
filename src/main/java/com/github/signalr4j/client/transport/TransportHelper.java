@@ -6,19 +6,25 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.transport;
 
-import com.github.signalr4j.client.*;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.github.signalr4j.client.Connection;
+import com.github.signalr4j.client.ConnectionBase;
+import com.github.signalr4j.client.Constants;
+import com.github.signalr4j.client.MessageResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
 public class TransportHelper {
-    public static MessageResult processReceivedData(String data, ConnectionBase connection) {
-        Logger logger = connection.getLogger();
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(TransportHelper.class);
+
+    public static MessageResult processReceivedData(String data, ConnectionBase connection) throws JsonProcessingException {
         MessageResult result = new MessageResult();
-        
+
         if (data == null) {
             return result;
         }
@@ -29,28 +35,22 @@ public class TransportHelper {
             return result;
         }
 
-        JsonObject json;
+        JsonNode json = Connection.MAPPER.readTree(data);
 
-        try {
-            json = connection.getJsonParser().parse(data).getAsJsonObject();
-        } catch (Exception e) {
-            connection.onError(e, false);
-            return result;
-        }
 
-        if (json.entrySet().size() == 0) {
+        if (json.size() == 0) {
             return result;
         }
 
         if (json.get("I") != null) {
-            logger.log("Invoking message received with: " + json, LogLevel.VERBOSE);
+            LOGGER.trace("Invoking message received with: {}", json);
             connection.onReceived(json);
         } else {
 
             // disconnected
             if (json.get("D") != null) {
-                if (json.get("D").getAsInt() == 1) {
-                    logger.log("Disconnect message received", LogLevel.VERBOSE);
+                if (json.get("D").intValue() == 1) {
+                    LOGGER.trace("Disconnect message received");
                     result.setDisconnect(true);
                     return result;
                 }
@@ -58,42 +58,35 @@ public class TransportHelper {
 
             // should reconnect
             if (json.get("T") != null) {
-                if (json.get("T").getAsInt() == 1) {
-                    logger.log("Reconnect message received", LogLevel.VERBOSE);
+                if (json.get("T").intValue() == 1) {
+                    LOGGER.trace("Reconnect message received");
                     result.setReconnect(true);
                 }
             }
 
             if (json.get("G") != null) {
-                String groupsToken = json.get("G").getAsString();
-                logger.log("Group token received: " + groupsToken, LogLevel.VERBOSE);
+                String groupsToken = json.get("G").textValue();
+                LOGGER.trace("Group token received: {}" + groupsToken);
                 connection.setGroupsToken(groupsToken);
             }
 
-            JsonElement messages = json.get("M");
-            if (messages != null && messages.isJsonArray()) {
-
+            JsonNode messages = json.get("M");
+            if (messages != null && messages.isArray()) {
                 if (json.get("C") != null) {
-                    String messageId = json.get("C").getAsString();
-                    logger.log("MessageId received: " + messageId, LogLevel.VERBOSE);
+                    String messageId = json.get("C").textValue();
+                    LOGGER.trace("MessageId received: {}", messageId);
                     connection.setMessageId(messageId);
                 }
 
-                JsonArray messagesArray = messages.getAsJsonArray();
-                int size = messagesArray.size();
-
-                for (int i = 0; i < size; i++) {
-                    JsonElement message = messagesArray.get(i);
-                    JsonElement processedMessage = null;
-
-                    logger.log("Invoking OnReceived with: " + processedMessage, LogLevel.VERBOSE);
+                for (JsonNode message : messages) {
+                    LOGGER.trace("Invoking OnReceived with: {}", message);
                     connection.onReceived(message);
                 }
             }
 
             if (json.get("S") != null) {
-                if (json.get("S").getAsInt() == 1) {
-                    logger.log("Initialization message received", LogLevel.INFORMATION);
+                if (json.get("S").intValue() == 1) {
+                    LOGGER.debug("Initialization message received");
                     result.setInitialize(true);
                 }
             }
@@ -104,11 +97,9 @@ public class TransportHelper {
 
     /**
      * Creates the query string used on receive
-     * 
-     * @param transport
-     *            Transport to use
-     * @param connection
-     *            Current connection
+     *
+     * @param transport  Transport to use
+     * @param connection Current connection
      * @return The querystring
      */
     public static String getReceiveQueryString(ClientTransport transport, ConnectionBase connection) {
@@ -143,9 +134,8 @@ public class TransportHelper {
 
     /**
      * Creates the query string used on sending
-     * 
-     * @param connection
-     *            current connection
+     *
+     * @param connection current connection
      * @return The querystring
      */
     public static String getNegotiateQueryString(ConnectionBase connection) {
@@ -165,11 +155,9 @@ public class TransportHelper {
 
     /**
      * Creates the query string used on sending
-     * 
-     * @param transport
-     *            the transport to use
-     * @param connection
-     *            current connection
+     *
+     * @param transport  the transport to use
+     * @param connection current connection
      * @return The querystring
      */
     public static String getSendQueryString(ClientTransport transport, ConnectionBase connection) {

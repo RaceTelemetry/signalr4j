@@ -6,23 +6,23 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.tests.util;
 
+import com.github.signalr4j.client.http.HttpConnection;
+import com.github.signalr4j.client.http.HttpConnectionFuture;
+import com.github.signalr4j.client.http.HttpConnectionFuture.ResponseCallback;
+import com.github.signalr4j.client.http.Request;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
 
-import com.github.signalr4j.client.http.HttpConnection;
-import com.github.signalr4j.client.http.HttpConnectionFuture;
-import com.github.signalr4j.client.http.HttpConnectionFuture.ResponseCallback;
-import com.github.signalr4j.client.http.Request;
-
 public class MockHttpConnection implements HttpConnection {
 
-    Semaphore mSemaphore = new Semaphore(0);
+    Semaphore semaphore = new Semaphore(0);
 
-    Queue<RequestEntry> mRequests = new ConcurrentLinkedQueue<RequestEntry>();
-    List<Thread> mThreads = new ArrayList<Thread>();
+    Queue<RequestEntry> requests = new ConcurrentLinkedQueue<>();
+    List<Thread> threads = new ArrayList<>();
 
     @Override
     public HttpConnectionFuture execute(Request request, ResponseCallback responseCallback) {
@@ -32,8 +32,8 @@ public class MockHttpConnection implements HttpConnection {
         entry.future = new HttpConnectionFuture();
         entry.response = new MockResponse(200);
 
-        mRequests.add(entry);
-        mSemaphore.release();
+        requests.add(entry);
+        semaphore.release();
 
         return entry.future;
     }
@@ -44,19 +44,15 @@ public class MockHttpConnection implements HttpConnection {
         public HttpConnectionFuture future;
         public MockResponse response;
         private boolean mResponseTriggered = false;
-        private Object mSync = new Object();
+        private final Object mSync = new Object();
 
         public void finishRequest() {
-            Thread t = new Thread(new Runnable() {
-
-                @Override
-                public void run() {
-                    response.finishWriting();
-                    future.setResult(null);
-                }
+            Thread t = new Thread(() -> {
+                response.finishWriting();
+                future.setResult(null);
             });
 
-            mThreads.add(t);
+            threads.add(t);
 
             t.start();
         }
@@ -66,18 +62,14 @@ public class MockHttpConnection implements HttpConnection {
                 if (!mResponseTriggered) {
                     mResponseTriggered = true;
 
-                    Thread t = new Thread(new Runnable() {
-
-                        @Override
-                        public void run() {
-                            try {
-                                callback.onResponse(response);
-                            } catch (Exception e) {
-                            }
+                    Thread t = new Thread(() -> {
+                        try {
+                            callback.onResponse(response);
+                        } catch (Exception ignored) {
                         }
                     });
 
-                    mThreads.add(t);
+                    threads.add(t);
 
                     t.start();
                 }
@@ -86,7 +78,7 @@ public class MockHttpConnection implements HttpConnection {
     }
 
     public RequestEntry getRequest() throws InterruptedException {
-        mSemaphore.acquire();
-        return mRequests.poll();
+        semaphore.acquire();
+        return requests.poll();
     }
 }

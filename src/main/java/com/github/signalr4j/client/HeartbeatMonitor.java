@@ -32,11 +32,9 @@ public class HeartbeatMonitor {
 
     /**
      * Starts the monitor
-     * 
-     * @param keepAliveData
-     *            Data for keep-alive timings
-     * @param connection
-     *            Connection to monitor
+     *
+     * @param keepAliveData Data for keep-alive timings
+     * @param connection    Connection to monitor
      */
     public void start(KeepAliveData keepAliveData, final ConnectionBase connection) {
         if (keepAliveData == null) {

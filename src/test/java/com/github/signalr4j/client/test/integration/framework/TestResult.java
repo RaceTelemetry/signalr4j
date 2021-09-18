@@ -7,33 +7,33 @@ See License.txt in the project root for license information.
 package com.github.signalr4j.client.test.integration.framework;
 
 public class TestResult {
-	private TestStatus mStatus;
+    private TestStatus mStatus;
 
-	private Exception mException;
+    private Exception mException;
 
-	private TestCase mTestCase;
+    private TestCase mTestCase;
 
-	public TestStatus getStatus() {
-		return mStatus;
-	}
+    public TestStatus getStatus() {
+        return mStatus;
+    }
 
-	public void setStatus(TestStatus status) {
-		this.mStatus = status;
-	}
+    public void setStatus(TestStatus status) {
+        this.mStatus = status;
+    }
 
-	public Exception getException() {
-		return mException;
-	}
+    public Exception getException() {
+        return mException;
+    }
 
-	public void setException(Exception e) {
-		this.mException = e;
-	}
+    public void setException(Exception e) {
+        this.mException = e;
+    }
 
-	public TestCase getTestCase() {
-		return mTestCase;
-	}
+    public TestCase getTestCase() {
+        return mTestCase;
+    }
 
-	public void setTestCase(TestCase testCase) {
-		mTestCase = testCase;
-	}
+    public void setTestCase(TestCase testCase) {
+        mTestCase = testCase;
+    }
 }

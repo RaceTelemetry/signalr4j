@@ -20,17 +20,17 @@ import java.util.Map;
  */
 public class CookieCredentials implements Credentials {
 
-    private Map<String, String> mCookieValues;
+    private Map<String, String> cookieValues;
 
     /**
      * Creates a new instance
      */
     public CookieCredentials() {
-        mCookieValues = new HashMap<String, String>();
+        cookieValues = new HashMap<String, String>();
     }
 
     public CookieCredentials(String cookie) {
-        mCookieValues = new HashMap<String, String>();
+        cookieValues = new HashMap<String, String>();
 
         if (cookie != null) {
             cookie = cookie.trim();
@@ -50,29 +50,26 @@ public class CookieCredentials implements Credentials {
 
     /**
      * Adds a cookie to the credential
-     * 
-     * @param name
-     *            The cookie name
-     * @param value
-     *            The cookie value
+     *
+     * @param name  The cookie name
+     * @param value The cookie value
      */
     public void addCookie(String name, String value) {
-        mCookieValues.put(name, value);
+        cookieValues.put(name, value);
     }
 
     /**
      * Removes a cookie from the credential
-     * 
-     * @param name
-     *            The cookie name
+     *
+     * @param name The cookie name
      */
     public void removeCookie(String name) {
-        mCookieValues.remove(name);
+        cookieValues.remove(name);
     }
 
     @Override
     public void prepareRequest(Request request) {
-        if (mCookieValues.size() > 0) {
+        if (cookieValues.size() > 0) {
             StringBuilder currentCookies = new StringBuilder();
             if (request.getHeaders().containsKey("Cookie")) {
                 currentCookies.append(request.getHeaders().get("Cookie"));
@@ -89,14 +86,14 @@ public class CookieCredentials implements Credentials {
 
     @Override
     public String toString() {
-        if (mCookieValues.size() > 0) {
+        if (cookieValues.size() > 0) {
             StringBuilder sb = new StringBuilder();
 
-            for (String key : mCookieValues.keySet()) {
+            for (String key : cookieValues.keySet()) {
                 try {
                     sb.append(URLEncoder.encode(key, Constants.UTF8_NAME));
                     sb.append("=");
-                    sb.append(URLEncoder.encode(mCookieValues.get(key), Constants.UTF8_NAME));
+                    sb.append(URLEncoder.encode(cookieValues.get(key), Constants.UTF8_NAME));
                     sb.append(";");
                 } catch (UnsupportedEncodingException ignored) {
                 }

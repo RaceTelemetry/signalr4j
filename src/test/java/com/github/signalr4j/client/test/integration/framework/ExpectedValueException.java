@@ -8,10 +8,10 @@ package com.github.signalr4j.client.test.integration.framework;
 
 public class ExpectedValueException extends Exception {
 
-	private static final long serialVersionUID = -1566510176488795332L;
+    private static final long serialVersionUID = -1566510176488795332L;
 
-	public ExpectedValueException(Object expected, Object actual) {
-		super(String.format("Expected %s - Actual %s", expected.toString(), actual.toString()));
+    public ExpectedValueException(Object expected, Object actual) {
+        super(String.format("Expected %s - Actual %s", expected.toString(), actual.toString()));
 
-	}
+    }
 }

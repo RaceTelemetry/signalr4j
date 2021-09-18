@@ -6,8 +6,8 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.hubs;
 
-import com.google.gson.JsonElement;
-import com.google.gson.annotations.SerializedName;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.Locale;
 import java.util.Map;
@@ -16,23 +16,23 @@ import java.util.Map;
  * Represents the result of a hub operation
  */
 public class HubResult {
-    @SerializedName("I")
+    @JsonProperty("I")
     private String id;
 
-    @SerializedName("R")
-    private JsonElement result;
+    @JsonProperty("R")
+    private JsonNode result;
 
-    @SerializedName("H")
+    @JsonProperty("H")
     private boolean isHubException;
 
-    @SerializedName("E")
+    @JsonProperty("E")
     private String error;
 
-    @SerializedName("D")
+    @JsonProperty("D")
     private Object errorData;
 
-    @SerializedName("S")
-    private Map<String, JsonElement> state;
+    @JsonProperty("S")
+    private Map<String, JsonNode> state;
 
     public String getId() {
         return id == null ? null : id.toLowerCase(Locale.getDefault());
@@ -42,11 +42,11 @@ public class HubResult {
         this.id = id;
     }
 
-    public JsonElement getResult() {
+    public JsonNode getResult() {
         return result;
     }
 
-    public void setResult(JsonElement result) {
+    public void setResult(JsonNode result) {
         this.result = result;
     }
 
@@ -74,11 +74,11 @@ public class HubResult {
         this.errorData = errorData;
     }
 
-    public Map<String, JsonElement> getState() {
+    public Map<String, JsonNode> getState() {
         return state;
     }
 
-    public void setState(Map<String, JsonElement> state) {
+    public void setState(Map<String, JsonNode> state) {
         this.state = state;
     }
 }

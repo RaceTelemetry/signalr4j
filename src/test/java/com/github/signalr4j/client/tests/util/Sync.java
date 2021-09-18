@@ -12,16 +12,16 @@ import java.util.concurrent.Semaphore;
 
 public class Sync {
 
-    private static Map<String, Semaphore> mSemaphores = new HashMap<String, Semaphore>();
-    public static Object mSync = new Object();
+    private static Map<String, Semaphore> semaphores = new HashMap<String, Semaphore>();
+    public static final Object SYNC = new Object();
 
     private static Semaphore getSemaphore(String name) {
-        synchronized (mSync) {
-            if (!mSemaphores.containsKey(name)) {
-                mSemaphores.put(name, new Semaphore(0));
+        synchronized (SYNC) {
+            if (!semaphores.containsKey(name)) {
+                semaphores.put(name, new Semaphore(0));
             }
 
-            return mSemaphores.get(name);
+            return semaphores.get(name);
         }
     }
 
@@ -42,8 +42,8 @@ public class Sync {
     }
 
     public static void reset() {
-        synchronized (mSync) {
-            mSemaphores = new HashMap<String, Semaphore>();
+        synchronized (SYNC) {
+            semaphores = new HashMap<String, Semaphore>();
         }
     }
 

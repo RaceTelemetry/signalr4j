@@ -6,14 +6,12 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client;
 
-import java.util.Map;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.github.signalr4j.client.http.Request;
 import com.github.signalr4j.client.transport.ClientTransport;
+
+import java.util.Map;
 
 public interface ConnectionBase {
 
@@ -75,11 +73,9 @@ public interface ConnectionBase {
 
     /**
      * Triggers the Error event
-     * 
-     * @param error
-     *            The error that triggered the event
-     * @param mustCleanCurrentConnection
-     *            True if the connection must be cleaned
+     *
+     * @param error                      The error that triggered the event
+     * @param mustCleanCurrentConnection True if the connection must be cleaned
      */
     void onError(Throwable error, boolean mustCleanCurrentConnection);
 
@@ -88,7 +84,7 @@ public interface ConnectionBase {
      */
     void received(MessageReceivedHandler handler);
 
-    void onReceived(JsonElement message);
+    void onReceived(JsonNode message) throws JsonProcessingException;
 
     /**
      * Sets the handler for the "ConnectionSlow" event
@@ -137,9 +133,8 @@ public interface ConnectionBase {
 
     /**
      * Starts the connection
-     * 
-     * @param transport
-     *            Transport to be used by the connection
+     *
+     * @param transport Transport to be used by the connection
      * @return Future for the operation
      */
     SignalRFuture<Void> start(ClientTransport transport);
@@ -156,18 +151,16 @@ public interface ConnectionBase {
 
     /**
      * Sends data using the connection
-     * 
-     * @param data
-     *            Data to send
+     *
+     * @param data Data to send
      * @return Future for the operation
      */
     SignalRFuture<Void> send(String data);
 
     /**
      * Prepares a request that is going to be sent to the server
-     * 
-     * @param request
-     *            The request to prepare
+     *
+     * @param request The request to prepare
      */
     void prepareRequest(Request request);
 
@@ -175,29 +168,9 @@ public interface ConnectionBase {
      * Returns the connection headers
      */
     Map<String, String> getHeaders();
-    
+
     /**
      * Add a header
      */
     void addHeader(String headerName, String headerValue);
-
-    /**
-     * Returns the Gson instance used by the connection
-     */
-    Gson getGson();
-
-    /**
-     * Sets the Gson instance used by the connection
-     */
-    void setGson(Gson gson);
-
-    /**
-     * Returns the JsonParser used by the connection
-     */
-    JsonParser getJsonParser();
-
-    /**
-     * Returns the Logger used by the connection
-     */
-    Logger getLogger();
 }

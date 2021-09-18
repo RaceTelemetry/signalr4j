@@ -6,11 +6,11 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.tests.util;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.github.signalr4j.client.ConnectionState;
 import com.github.signalr4j.client.SignalRFuture;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class MultiResult {
     public boolean booleanResult = false;

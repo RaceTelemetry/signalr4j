@@ -8,7 +8,6 @@ package com.github.signalr4j.client.tests.realtransport;
 
 import com.github.signalr4j.client.tests.util.Sync;
 import com.github.signalr4j.client.tests.util.TransportType;
-
 import org.junit.Before;
 
 public class LongPollingTransportTests extends HttpClientTransportTests {
@@ -18,10 +17,10 @@ public class LongPollingTransportTests extends HttpClientTransportTests {
         Sync.reset();
     }
 
-  
+
     @Override
     protected TransportType getTransportType() {
-        return TransportType.LongPolling;
+        return TransportType.LONG_POLLING;
     }
 
 }

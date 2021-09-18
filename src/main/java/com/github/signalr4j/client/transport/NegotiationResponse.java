@@ -6,9 +6,9 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.transport;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.github.signalr4j.client.Connection;
 
 /**
  * Represents the negotiation response sent by the server in the handshake
@@ -29,27 +29,31 @@ public class NegotiationResponse {
      *
      * @param jsonContent Json data
      */
-    public NegotiationResponse(String jsonContent, JsonParser parser) {
+    public NegotiationResponse(String jsonContent) {
         if (jsonContent == null || "".equals(jsonContent)) {
             return;
         }
 
-        JsonObject json = parser.parse(jsonContent).getAsJsonObject();
+        JsonNode json;
+        try {
+            json = Connection.MAPPER.readTree(jsonContent);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Unable to deserialize negotiation response", e);
+        }
 
-        setConnectionId(json.get("ConnectionId").getAsString());
-        setConnectionToken(json.get("ConnectionToken").getAsString());
-        setUrl(json.get("Url").getAsString());
-        setProtocolVersion(json.get("ProtocolVersion").getAsString());
-        setDisconnectTimeout(json.get("DisconnectTimeout").getAsDouble());
-        setTryWebSockets(json.get("TryWebSockets").getAsBoolean());
+        setConnectionId(json.get("ConnectionId").textValue());
+        setConnectionToken(json.get("ConnectionToken").textValue());
+        setUrl(json.get("Url").textValue());
+        setProtocolVersion(json.get("ProtocolVersion").textValue());
+        setDisconnectTimeout(json.get("DisconnectTimeout").doubleValue());
+        setTryWebSockets(json.get("TryWebSockets").booleanValue());
 
-        JsonElement keepAliveElement = json.get("KeepAliveTimeout");
-        if (keepAliveElement != null && !keepAliveElement.isJsonNull()) {
-            setKeepAliveTimeout(keepAliveElement.getAsDouble());
+        JsonNode keepAliveElement = json.get("KeepAliveTimeout");
+        if (keepAliveElement != null && !keepAliveElement.isNull()) {
+            setKeepAliveTimeout(keepAliveElement.doubleValue());
         } else {
             setKeepAliveTimeout(INVALID_KEEP_ALIVE_TIMEOUT);
         }
-
     }
 
     public String getConnectionId() {

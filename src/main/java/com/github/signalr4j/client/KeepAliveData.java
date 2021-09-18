@@ -40,9 +40,8 @@ class KeepAliveData {
 
     /**
      * Initializes the Keep Alive data
-     * 
-     * @param timeout
-     *            Timeout in milliseconds
+     *
+     * @param timeout Timeout in milliseconds
      */
     public KeepAliveData(long timeout) {
         setTimeout(timeout);

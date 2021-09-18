@@ -6,7 +6,7 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client;
 
-import com.google.gson.JsonElement;
+import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * Interface to define a handler for a "Message received" event
@@ -14,9 +14,8 @@ import com.google.gson.JsonElement;
 public interface MessageReceivedHandler {
     /**
      * Handles an incoming message
-     * 
-     * @param json
-     *            The received message
+     *
+     * @param json The received message
      */
-    void onMessageReceived(JsonElement json);
+    void onMessageReceived(JsonNode json);
 }

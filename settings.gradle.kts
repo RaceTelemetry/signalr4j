@@ -1,0 +1,1 @@
+rootProject.name = "SignalR4J"

@@ -6,16 +6,14 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.github.signalr4j.client.http.Request;
 import com.github.signalr4j.client.transport.*;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,9 +22,11 @@ import java.util.Map;
  */
 public class Connection implements ConnectionBase {
 
-    public static final Version PROTOCOL_VERSION = new Version("1.5");
+    private static final Logger LOGGER = LoggerFactory.getLogger(Connection.class);
 
-    private final Logger logger;
+    public static final JsonMapper MAPPER = new JsonMapper();
+
+    public static final Version PROTOCOL_VERSION = new Version("1.5");
 
     private final String url;
 
@@ -74,10 +74,6 @@ public class Connection implements ConnectionBase {
 
     protected ConnectionState state;
 
-    protected JsonParser jsonParser;
-
-    protected Gson gson;
-
     private final Object stateLock = new Object();
 
     private final Object startLock = new Object();
@@ -86,78 +82,35 @@ public class Connection implements ConnectionBase {
 
     /**
      * Initializes the connection with an URL
-     * 
-     * @param url
-     *            The connection URL
+     *
+     * @param url The connection URL
      */
     public Connection(String url) {
-        this(url, (String) null);
-    }
-
-    /**
-     * Initializes the connection with an URL and a query string
-     * 
-     * @param url
-     *            The connection URL
-     * @param queryString
-     *            The connection query string
-     */
-    public Connection(String url, String queryString) {
-        this(url, queryString, new NullLogger());
-    }
-
-    /**
-     * Initializes the connection with an URL and a logger
-     * 
-     * @param url
-     *            The connection URL
-     * @param logger
-     *            The connection logger
-     */
-    public Connection(String url, Logger logger) {
-        this(url, null, logger);
+        this(url, null);
     }
 
     /**
      * Initializes the connection with an URL, a query string and a Logger
-     * 
-     * @param url
-     *            The connection URL
-     * @param queryString
-     *            The connection query string
-     * @param logger
-     *            The connection logger
+     *
+     * @param url         The connection URL
+     * @param queryString The connection query string
      */
-    public Connection(String url, String queryString, Logger logger) {
+    public Connection(String url, String queryString) {
         if (url == null) {
             throw new IllegalArgumentException("URL cannot be null");
-        }
-
-        if (logger == null) {
-            throw new IllegalArgumentException("Logger cannot be null");
         }
 
         if (!url.endsWith("/")) {
             url += "/";
         }
 
-        log("Initialize the connection", LogLevel.INFORMATION);
-        log("Connection data: " + url + " - " + (queryString == null ? "" : queryString), LogLevel.VERBOSE);
+        LOGGER.debug("Initialize the connection");
+        LOGGER.trace("Connection data: {} - {}", url, queryString == null ? "" : queryString);
 
         this.url = url;
         this.queryString = queryString;
-        this.logger = logger;
-        jsonParser = new JsonParser();
 
-        GsonBuilder gsonBuilder = new GsonBuilder();
-        gsonBuilder.registerTypeAdapter(Date.class, new DateSerializer());
-        gson = gsonBuilder.create();
         state = ConnectionState.DISCONNECTED;
-    }
-
-    @Override
-    public Logger getLogger() {
-        return logger;
     }
 
     @Override
@@ -209,7 +162,7 @@ public class Connection implements ConnectionBase {
     public void setGroupsToken(String groupsToken) {
         this.groupsToken = groupsToken;
     }
-    
+
     @Override
     public void addHeader(String headerName, String headerValue) {
         headers.put(headerName, headerValue);
@@ -262,29 +215,28 @@ public class Connection implements ConnectionBase {
 
     /**
      * Starts the connection using the best available transport
-     * 
+     *
      * @return A Future for the operation
      */
     public SignalRFuture<Void> start() {
-        return start(new AutomaticTransport(logger));
+        return start(new AutomaticTransport());
     }
 
     /**
      * Sends a serialized object
-     * 
-     * @param object
-     *            The object to send. If the object is a JsonElement, its string
-     *            representation is sent. Otherwise, the object is serialized to
-     *            Json.
+     *
+     * @param object The object to send. If the object is a JsonNode, its string
+     *               representation is sent. Otherwise, the object is serialized to
+     *               Json.
      * @return A Future for the operation
      */
     public SignalRFuture<Void> send(Object object) {
         String data = null;
         if (object != null) {
-            if (object instanceof JsonElement) {
+            if (object instanceof JsonNode) {
                 data = object.toString();
             } else {
-                data = gson.toJson(object);
+                data = MAPPER.valueToTree(object).toString();
             }
         }
 
@@ -293,7 +245,7 @@ public class Connection implements ConnectionBase {
 
     @Override
     public SignalRFuture<Void> send(String data) {
-        log("Sending: " + data, LogLevel.INFORMATION);
+        LOGGER.debug("Sending: {}", data);
 
         if (state == ConnectionState.DISCONNECTED || state == ConnectionState.CONNECTING) {
             onError(new InvalidStateException(state), false);
@@ -302,7 +254,7 @@ public class Connection implements ConnectionBase {
 
         final Connection that = this;
 
-        log("Invoking send on transport", LogLevel.VERBOSE);
+        LOGGER.trace("Invoking send on transport");
         SignalRFuture<Void> future = transport.send(this, data, that::processReceivedData);
 
         handleFutureError(future, false);
@@ -311,11 +263,9 @@ public class Connection implements ConnectionBase {
 
     /**
      * Handles a Future error, invoking the connection onError event
-     * 
-     * @param future
-     *            The future to handle
-     * @param mustCleanCurrentConnection
-     *            True if the connection must be cleaned when an error happens
+     *
+     * @param future                     The future to handle
+     * @param mustCleanCurrentConnection True if the connection must be cleaned when an error happens
      */
     private void handleFutureError(SignalRFuture<?> future, final boolean mustCleanCurrentConnection) {
         final Connection that = this;
@@ -326,24 +276,24 @@ public class Connection implements ConnectionBase {
     @Override
     public SignalRFuture<Void> start(final ClientTransport transport) {
         synchronized (startLock) {
-            log("Entered startLock in start", LogLevel.VERBOSE);
+            LOGGER.trace("Entered startLock in start");
             if (!changeState(ConnectionState.DISCONNECTED, ConnectionState.CONNECTING)) {
-                log("Couldn't change state from disconnected to connecting.", LogLevel.VERBOSE);
+                LOGGER.trace("Couldn't change state from disconnected to connecting.");
                 return connectionFuture;
             }
 
-            log("Start the connection, using " + transport.getName() + " transport", LogLevel.INFORMATION);
+            LOGGER.debug("Start the connection, using " + transport.getName() + " transport");
 
             this.transport = transport;
             connectionFuture = new UpdateableCancellableFuture<>(null);
             handleFutureError(connectionFuture, true);
 
-            log("Start negotiation", LogLevel.VERBOSE);
+            LOGGER.trace("Start negotiation");
             SignalRFuture<NegotiationResponse> negotiationFuture = transport.negotiate(this);
 
             try {
                 negotiationFuture.done(negotiationResponse -> {
-                    log("Negotiation completed", LogLevel.INFORMATION);
+                    LOGGER.debug("Negotiation completed");
                     if (!verifyProtocolVersion(negotiationResponse.getProtocolVersion())) {
                         Exception err = new InvalidProtocolVersionException(negotiationResponse.getProtocolVersion());
                         onError(err, true);
@@ -353,12 +303,12 @@ public class Connection implements ConnectionBase {
 
                     connectionId = negotiationResponse.getConnectionId();
                     connectionToken = negotiationResponse.getConnectionToken();
-                    log("ConnectionId: " + connectionId, LogLevel.VERBOSE);
-                    log("ConnectionToken: " + connectionToken, LogLevel.VERBOSE);
+                    LOGGER.trace("ConnectionId: {}", connectionId);
+                    LOGGER.trace("ConnectionToken: {}", connectionToken);
 
                     KeepAliveData keepAliveData = null;
                     if (negotiationResponse.getKeepAliveTimeout() > 0) {
-                        log("Keep alive timeout: " + negotiationResponse.getKeepAliveTimeout(), LogLevel.VERBOSE);
+                        LOGGER.trace("Keep alive timeout: {}", negotiationResponse.getKeepAliveTimeout());
                         keepAliveData = new KeepAliveData((long) (negotiationResponse.getKeepAliveTimeout() * 1000));
                     }
 
@@ -366,7 +316,7 @@ public class Connection implements ConnectionBase {
                 });
 
                 negotiationFuture.onError(error -> connectionFuture.triggerError(error));
-                
+
             } catch (Exception e) {
                 onError(e, true);
             }
@@ -380,11 +330,9 @@ public class Connection implements ConnectionBase {
 
     /**
      * Changes the connection state
-     * 
-     * @param oldState
-     *            The expected old state
-     * @param newState
-     *            The new state
+     *
+     * @param oldState The expected old state
+     * @param newState The new state
      * @return True, if the state was changed
      */
     private boolean changeState(ConnectionState oldState, ConnectionState newState) {
@@ -418,7 +366,7 @@ public class Connection implements ConnectionBase {
     @Override
     public void prepareRequest(Request request) {
         if (credentials != null) {
-            log("Preparing request with credentials data", LogLevel.INFORMATION);
+            LOGGER.debug("Preparing request with credentials data");
             credentials.prepareRequest(request);
         }
     }
@@ -431,21 +379,21 @@ public class Connection implements ConnectionBase {
     @Override
     public void stop() {
         synchronized (startLock) {
-            log("Entered startLock in stop", LogLevel.VERBOSE);
+            LOGGER.trace("Entered startLock in stop");
             if (aborting) {
-                log("Abort already started.", LogLevel.VERBOSE);
+                LOGGER.trace("Abort already started.");
                 return;
             }
 
             if (state == ConnectionState.DISCONNECTED) {
-                log("Connection already in disconnected state. Exiting abort", LogLevel.VERBOSE);
+                LOGGER.trace("Connection already in disconnected state. Exiting abort");
                 return;
             }
 
-            log("Stopping the connection", LogLevel.INFORMATION);
+            LOGGER.debug("Stopping the connection");
             aborting = true;
 
-            log("Starting abort operation", LogLevel.VERBOSE);
+            LOGGER.trace("Starting abort operation");
             abortFuture = transport.abort(this);
 
             final Connection that = this;
@@ -459,14 +407,14 @@ public class Connection implements ConnectionBase {
 
             abortFuture.onCancelled(() -> {
                 synchronized (startLock) {
-                    log("Abort cancelled", LogLevel.VERBOSE);
+                    LOGGER.trace("Abort cancelled");
                     aborting = false;
                 }
             });
 
             abortFuture.done(obj -> {
                 synchronized (startLock) {
-                    log("Abort completed", LogLevel.INFORMATION);
+                    LOGGER.debug("Abort completed");
                     disconnect();
                     aborting = false;
                 }
@@ -477,13 +425,13 @@ public class Connection implements ConnectionBase {
     @Override
     public void disconnect() {
         synchronized (stateLock) {
-            log("Entered stateLock in disconnect", LogLevel.VERBOSE);
+            LOGGER.trace("Entered stateLock in disconnect");
 
             if (state == ConnectionState.DISCONNECTED) {
                 return;
             }
 
-            log("Disconnecting", LogLevel.INFORMATION);
+            LOGGER.debug("Disconnecting");
             ConnectionState oldState = state;
             state = ConnectionState.DISCONNECTED;
             if (onStateChanged != null) {
@@ -495,20 +443,20 @@ public class Connection implements ConnectionBase {
             }
 
             if (heartbeatMonitor != null) {
-                log("Stopping Heartbeat monitor", LogLevel.VERBOSE);
+                LOGGER.trace("Stopping Heartbeat monitor");
                 heartbeatMonitor.stop();
             }
 
             heartbeatMonitor = null;
 
             if (connectionFuture != null) {
-                log("Stopping the connection", LogLevel.VERBOSE);
+                LOGGER.trace("Stopping the connection");
                 connectionFuture.cancel();
                 connectionFuture = new UpdateableCancellableFuture<>(null);
             }
 
             if (abortFuture != null) {
-                log("Cancelling abort", LogLevel.VERBOSE);
+                LOGGER.trace("Cancelling abort");
                 abortFuture.cancel();
             }
 
@@ -522,21 +470,6 @@ public class Connection implements ConnectionBase {
 
         }
         onClosed();
-    }
-
-    @Override
-    public Gson getGson() {
-        return gson;
-    }
-
-    @Override
-    public void setGson(Gson gson) {
-        this.gson = gson;
-    }
-
-    @Override
-    public JsonParser getJsonParser() {
-        return jsonParser;
     }
 
     /**
@@ -570,9 +503,8 @@ public class Connection implements ConnectionBase {
 
     /**
      * Verifies the protocol version
-     * 
-     * @param versionString
-     *            String representing a Version
+     *
+     * @param versionString String representing a Version
      * @return True if the version is supported.
      */
     private static boolean verifyProtocolVersion(String versionString) {
@@ -592,25 +524,23 @@ public class Connection implements ConnectionBase {
 
     /**
      * Starts the transport
-     * 
-     * @param keepAliveData
-     *            Keep Alive data for heartbeat monitor
-     * @param isReconnecting
-     *            True if is reconnecting
+     *
+     * @param keepAliveData  Keep Alive data for heartbeat monitor
+     * @param isReconnecting True if is reconnecting
      */
     private void startTransport(KeepAliveData keepAliveData, final boolean isReconnecting) {
         synchronized (startLock) {
-            log("Entered startLock in startTransport", LogLevel.VERBOSE);
+            LOGGER.trace("Entered startLock in startTransport");
             // if the connection was closed before this callback, just return;
             if (transport == null) {
-                log("Transport is null. Exiting startTransport", LogLevel.VERBOSE);
+                LOGGER.trace("Transport is null. Exiting startTransport");
                 return;
             }
 
-            log("Starting the transport", LogLevel.INFORMATION);
+            LOGGER.debug("Starting the transport");
             if (isReconnecting) {
                 if (heartbeatMonitor != null) {
-                    log("Stopping heartbeat monitor", LogLevel.VERBOSE);
+                    LOGGER.trace("Stopping heartbeat monitor");
                     heartbeatMonitor.stop();
                 }
 
@@ -622,14 +552,14 @@ public class Connection implements ConnectionBase {
             heartbeatMonitor = new HeartbeatMonitor();
 
             heartbeatMonitor.setOnWarning(() -> {
-                log("Slow connection detected", LogLevel.INFORMATION);
+                LOGGER.debug("Slow connection detected");
                 if (onConnectionSlow != null) {
                     onConnectionSlow.run();
                 }
             });
 
             heartbeatMonitor.setOnTimeout(() -> {
-                log("Timeout", LogLevel.INFORMATION);
+                LOGGER.debug("Timeout");
                 if (reconnectOnError)
                     reconnect();
                 else
@@ -640,9 +570,9 @@ public class Connection implements ConnectionBase {
 
             ConnectionType connectionType = isReconnecting ? ConnectionType.RECONNECTION : ConnectionType.INITIAL_CONNECTION;
 
-            log("Starting transport for " + connectionType, LogLevel.VERBOSE);
+            LOGGER.trace("Starting transport for {}", connectionType);
             SignalRFuture<Void> future = transport.start(this, connectionType, data -> {
-                log("Received data: ", LogLevel.VERBOSE);
+                LOGGER.trace("Received data: ");
                 processReceivedData(data);
             });
 
@@ -656,22 +586,22 @@ public class Connection implements ConnectionBase {
             try {
                 future.done(obj -> {
                     synchronized (startLock) {
-                        log("Entered startLock after transport was started", LogLevel.VERBOSE);
-                        log("Current state: " + state, LogLevel.VERBOSE);
+                        LOGGER.trace("Entered startLock after transport was started");
+                        LOGGER.trace("Current state: {}", state);
                         if (changeState(ConnectionState.RECONNECTING, ConnectionState.CONNECTED)) {
 
-                            log("Starting Heartbeat monitor", LogLevel.VERBOSE);
+                            LOGGER.trace("Starting Heartbeat monitor");
                             heartbeatMonitor.start(this.keepAliveData, that);
 
-                            log("Reconnected", LogLevel.INFORMATION);
+                            LOGGER.debug("Reconnected");
                             onReconnected();
 
                         } else if (changeState(ConnectionState.CONNECTING, ConnectionState.CONNECTED)) {
 
-                            log("Starting Heartbeat monitor", LogLevel.VERBOSE);
+                            LOGGER.trace("Starting Heartbeat monitor");
                             heartbeatMonitor.start(this.keepAliveData, that);
 
-                            log("Connected", LogLevel.INFORMATION);
+                            LOGGER.debug("Connected");
                             onConnected();
                             connectionFuture.setResult(null);
                         }
@@ -685,16 +615,20 @@ public class Connection implements ConnectionBase {
 
     /**
      * Parses the received data and triggers the OnReceived event
-     * 
-     * @param data
-     *            The received data
+     *
+     * @param data The received data
      */
     private void processReceivedData(String data) {
         if (heartbeatMonitor != null) {
             heartbeatMonitor.beat();
         }
 
-        MessageResult result = TransportHelper.processReceivedData(data, this);
+        MessageResult result;
+        try {
+            result = TransportHelper.processReceivedData(data, this);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Unable to deserialized received data", e);
+        }
 
         if (result.disconnect()) {
             disconnect();
@@ -706,32 +640,17 @@ public class Connection implements ConnectionBase {
         }
     }
 
-    /**
-     * Processes a received message
-     * 
-     * @param message
-     *            The message to process
-     * @return The processed message
-     * @throws Exception
-     *             An exception could be thrown if there an error while
-     *             processing the message
-     */
-    protected JsonElement processMessage(JsonElement message) throws Exception {
-        return message;
-    }
-
     @Override
     public void onError(Throwable error, boolean mustCleanCurrentConnection) {
-
-        if(error != null)
-            log(error);
+        if (error != null)
+            LOGGER.debug("An error occurred", error);
 
         if (mustCleanCurrentConnection) {
             if ((state == ConnectionState.CONNECTED || state == ConnectionState.RECONNECTING) && reconnectOnError) {
-                log("Triggering reconnect", LogLevel.VERBOSE);
+                LOGGER.trace("Triggering reconnect");
                 reconnect();
             } else {
-                log("Triggering disconnect", LogLevel.VERBOSE);
+                LOGGER.trace("Triggering disconnect");
                 if (onError != null) {
                     onError.onError(error);
                 }
@@ -758,9 +677,9 @@ public class Connection implements ConnectionBase {
      */
     private void reconnect() {
         if (state == ConnectionState.CONNECTED || state == ConnectionState.RECONNECTING) {
-            log("Stopping Heartbeat monitor", LogLevel.VERBOSE);
+            LOGGER.trace("Stopping Heartbeat monitor");
             heartbeatMonitor.stop();
-            log("Restarting the transport", LogLevel.INFORMATION);
+            LOGGER.debug("Restarting the transport");
 
             // if it is reconnecting and the connection cannot yet be established
             // therefore the mHeartbeatMonitor instance wouldn't be initialized with the KeepAliveData value
@@ -772,27 +691,14 @@ public class Connection implements ConnectionBase {
         }
     }
 
-    protected void log(String message, LogLevel level) {
-        if (message != null & logger != null) {
-            logger.log(getSourceNameForLog() + " - " + message, level);
-        }
-    }
-
-    protected void log(Throwable error) {
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        error.printStackTrace(pw);
-        logger.log(getSourceNameForLog() + " - Error: \n" + sw, LogLevel.CRITICAL);
-    }
-
     protected String getSourceNameForLog() {
         return "Connection";
     }
 
     @Override
-    public void onReceived(JsonElement message) {
+    public void onReceived(JsonNode message) throws JsonProcessingException {
         if (onReceived != null && getState() == ConnectionState.CONNECTED) {
-            log("Invoking messageReceived with: " + message, LogLevel.VERBOSE);
+            LOGGER.trace("Invoking messageReceived with: {}", message);
             try {
                 onReceived.onMessageReceived(message);
             } catch (Throwable error) {

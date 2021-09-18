@@ -20,23 +20,18 @@ public class LongPollingTransport extends HttpClientTransport {
 
     /**
      * Initializes the transport
-     *
-     * @param logger logger to log actions
      */
-    public LongPollingTransport(Logger logger) {
-        super(logger);
+    public LongPollingTransport() {
+        super();
     }
 
     /**
      * Initializes the transport with a logger
-     * 
-     * @param logger
-     *            Logger to log actions
-     * @param httpConnection
-     *            HttpConnection for the transport
+     *
+     * @param httpConnection HttpConnection for the transport
      */
-    public LongPollingTransport(Logger logger, HttpConnection httpConnection) {
-        super(logger, httpConnection);
+    public LongPollingTransport(HttpConnection httpConnection) {
+        super(httpConnection);
     }
 
     @Override
@@ -56,18 +51,15 @@ public class LongPollingTransport extends HttpClientTransport {
 
     /**
      * Polls the server
-     * 
-     * @param connection
-     *            the implemented connection
-     * @param connectionUrl
-     *            the connection action url
-     * @param callback
-     *            callback to invoke when data is received
+     *
+     * @param connection    the implemented connection
+     * @param connectionUrl the connection action url
+     * @param callback      callback to invoke when data is received
      * @return Future for the operation
      */
     private SignalRFuture<Void> poll(final ConnectionBase connection, final String connectionUrl, final DataResultCallback callback) {
         synchronized (pollSync) {
-            log("Start the communication with the server", LogLevel.INFORMATION);
+            LOGGER.debug("Start the communication with the server");
             String url = connection.getUrl() + connectionUrl + TransportHelper.getReceiveQueryString(this, connection);
 
             Request get = new Request(Constants.HTTP_GET);
@@ -77,7 +69,7 @@ public class LongPollingTransport extends HttpClientTransport {
 
             connection.prepareRequest(get);
 
-            log("Execute the request", LogLevel.VERBOSE);
+            LOGGER.trace("Execute the request");
             connectionFuture = new UpdateableCancellableFuture<>(null);
 
             final HttpConnectionFuture future = httpConnection.execute(get, response -> {
@@ -88,24 +80,24 @@ public class LongPollingTransport extends HttpClientTransport {
                         if (!"poll".equals(connectionUrl)) {
                             connectionFuture.setResult(null);
                         }
-                        log("Response received", LogLevel.VERBOSE);
+                        LOGGER.trace("Response received");
 
-                        log("Read response to the end", LogLevel.VERBOSE);
+                        LOGGER.trace("Read response to the end");
                         String responseData = response.readToEnd();
                         if (responseData != null) {
                             responseData = responseData.trim();
                         }
 
-                        log("Trigger onData with data: " + responseData, LogLevel.VERBOSE);
+                        LOGGER.trace("Trigger onData with data: {}", responseData);
                         callback.onData(responseData);
 
                         if (!connectionFuture.isCancelled() && connection.getState() == ConnectionState.CONNECTED) {
-                            log("Continue polling", LogLevel.VERBOSE);
+                            LOGGER.trace("Continue polling");
                             connectionFuture.setFuture(poll(connection, "poll", callback));
                         }
                     } catch (Throwable e) {
                         if (!connectionFuture.isCancelled()) {
-                            log(e);
+                            LOGGER.debug("Error whilst polling", e);
                             connectionFuture.triggerError(e);
                         }
                     }

@@ -6,33 +6,31 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.tests.util;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.github.signalr4j.client.*;
 import com.github.signalr4j.client.http.Request;
 import com.github.signalr4j.client.transport.ClientTransport;
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class MockConnection implements ConnectionBase {
 
-    private Credentials mCredentials;
+    private Credentials credentials;
 
     @Override
     public String getUrl() {
-        return "http://myUrl.com/signalr/";
+        return "https://myUrl.com/signalr/";
     }
 
     @Override
     public Credentials getCredentials() {
-        return mCredentials;
+        return credentials;
     }
 
     @Override
     public void setCredentials(Credentials credentials) {
-        mCredentials = credentials;
+        this.credentials = credentials;
     }
 
     @Override
@@ -122,21 +120,7 @@ public class MockConnection implements ConnectionBase {
 
     @Override
     public Map<String, String> getHeaders() {
-        return new HashMap<String, String>();
-    }
-
-    @Override
-    public Gson getGson() {
-        return new Gson();
-    }
-
-    @Override
-    public void setGson(Gson gson) {
-    }
-
-    @Override
-    public JsonParser getJsonParser() {
-        return new JsonParser();
+        return new HashMap<>();
     }
 
     @Override
@@ -163,15 +147,9 @@ public class MockConnection implements ConnectionBase {
     }
 
     @Override
-    public void onReceived(JsonElement message) {
+    public void onReceived(JsonNode message) {
         // TODO Auto-generated method stub
 
-    }
-
-    @Override
-    public Logger getLogger() {
-        // TODO Auto-generated method stub
-        return null;
     }
 
     @Override
@@ -180,10 +158,10 @@ public class MockConnection implements ConnectionBase {
 
     }
 
-	@Override
-	public void addHeader(String headerName, String headerValue) {
-		// TODO Auto-generated method stub
-		
-	}
+    @Override
+    public void addHeader(String headerName, String headerValue) {
+        // TODO Auto-generated method stub
+
+    }
 
 }

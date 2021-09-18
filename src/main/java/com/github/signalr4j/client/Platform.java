@@ -17,29 +17,27 @@ import java.util.Locale;
 public class Platform {
     static boolean PLATFORM_VERIFIED = false;
     static boolean IS_ANDROID = false;
-    static PlatformComponent mPlatformComponent = null;
+    static PlatformComponent platformComponent = null;
 
     public static void loadPlatformComponent(PlatformComponent platformComponent) {
-        mPlatformComponent = platformComponent;
+        Platform.platformComponent = platformComponent;
     }
 
     /**
      * Creates an adequate HttpConnection for the current platform
      *
-     * @param logger
-     *            Logger to use with the connection
      * @return An HttpConnection
      */
-    public static HttpConnection createHttpConnection(Logger logger) {
-        if (mPlatformComponent != null) {
-            return mPlatformComponent.createHttpConnection(logger);
+    public static HttpConnection createHttpConnection() {
+        if (platformComponent != null) {
+            return platformComponent.createHttpConnection();
         } else {
-            return createDefaultHttpConnection(logger);
+            return createDefaultHttpConnection();
         }
     }
 
-    public static HttpConnection createDefaultHttpConnection(Logger logger) {
-        return new JavaHttpConnection(logger);
+    public static HttpConnection createDefaultHttpConnection() {
+        return new JavaHttpConnection();
     }
 
     /**
@@ -48,8 +46,8 @@ public class Platform {
     public static String getUserAgent() {
         String osName;
 
-        if (mPlatformComponent != null) {
-            osName = mPlatformComponent.getOSName();
+        if (platformComponent != null) {
+            osName = platformComponent.getOSName();
         } else {
             osName = System.getProperty("os.name").toLowerCase(Locale.getDefault());
         }
@@ -58,15 +56,15 @@ public class Platform {
     }
 
     public static boolean useProxy() {
-        return (mPlatformComponent != null) && mPlatformComponent.useProxy();
+        return (platformComponent != null) && platformComponent.useProxy();
     }
 
     public static String getProxyHost() {
-        return (mPlatformComponent != null) ? mPlatformComponent.getProxyHost() : null;
+        return (platformComponent != null) ? platformComponent.getProxyHost() : null;
     }
 
     public static int getProxyPort() {
-        return (mPlatformComponent != null) ? mPlatformComponent.getProxyPort() : -1;
+        return (platformComponent != null) ? platformComponent.getProxyPort() : -1;
     }
 
 }

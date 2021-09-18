@@ -8,6 +8,8 @@ package com.github.signalr4j.client.transport;
 
 import com.github.signalr4j.client.*;
 import com.github.signalr4j.client.http.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -17,35 +19,28 @@ import java.util.List;
  * ClientTransport base implementation over Http
  */
 public abstract class HttpClientTransport implements ClientTransport {
+
+    protected static final Logger LOGGER = LoggerFactory.getLogger(HttpClientTransport.class);
     protected static final int BUFFER_SIZE = 1024;
 
     protected HttpConnection httpConnection;
     protected boolean startedAbort = false;
     protected SignalRFuture<Void> abortFuture = null;
 
-    private final Logger logger;
-
     /**
-     * Initializes the HttpClientTransport with a logger
-     *
-     * @param logger logger to log actions
+     * Initializes the HttpClientTransport
      */
-    public HttpClientTransport(Logger logger) {
-        this(logger, Platform.createHttpConnection(logger));
+    public HttpClientTransport() {
+        this(Platform.createHttpConnection());
     }
 
-    public HttpClientTransport(Logger logger, HttpConnection httpConnection) {
-        if (logger == null) {
-            throw new IllegalArgumentException("logger");
-        }
-
+    public HttpClientTransport(HttpConnection httpConnection) {
         this.httpConnection = httpConnection;
-        this.logger = logger;
     }
 
     @Override
     public SignalRFuture<NegotiationResponse> negotiate(final ConnectionBase connection) {
-        log("Start the negotiation with the server", LogLevel.INFORMATION);
+        LOGGER.debug("Start the negotiation with the server");
 
         String url = connection.getUrl() + "negotiate" + TransportHelper.getNegotiateQueryString(connection);
 
@@ -58,18 +53,18 @@ public abstract class HttpClientTransport implements ClientTransport {
 
         final SignalRFuture<NegotiationResponse> negotiationFuture = new SignalRFuture<>();
 
-        log("Execute the request", LogLevel.VERBOSE);
+        LOGGER.debug("Execute the request");
         HttpConnectionFuture connectionFuture = httpConnection.execute(get, response -> {
             try {
-                log("Response received", LogLevel.VERBOSE);
+                LOGGER.trace("Response received");
                 throwOnInvalidStatusCode(response);
-                log("Headers: " + response.getHeaders(), LogLevel.VERBOSE);
+                LOGGER.trace("Headers: {}", response.getHeaders());
 
-                log("Read response data to the end", LogLevel.VERBOSE);
+                LOGGER.trace("Read response data to the end");
                 String negotiationContent = response.readToEnd();
 
-                log("Trigger onSuccess with negotiation data: " + negotiationContent, LogLevel.VERBOSE);
-                negotiationFuture.setResult(new NegotiationResponse(negotiationContent, connection.getJsonParser()));
+                LOGGER.trace("Trigger onSuccess with negotiation data: {}", negotiationContent);
+                negotiationFuture.setResult(new NegotiationResponse(negotiationContent));
 
                 // Set cookies, so we get sent to the right server.
                 List<String> cookies = response.getHeader("Set-Cookie");
@@ -79,7 +74,7 @@ public abstract class HttpClientTransport implements ClientTransport {
                     connection.getHeaders().put("Cookie", String.join("; ", cookies));
                 }
             } catch (Throwable e) {
-                log(e);
+                LOGGER.debug("There was a problem in the negotiation with the server", e);
                 negotiationFuture.triggerError(new NegotiationException("There was a problem in the negotiation with the server", e));
             }
         });
@@ -92,7 +87,7 @@ public abstract class HttpClientTransport implements ClientTransport {
     @Override
     public SignalRFuture<Void> send(ConnectionBase connection, String data, final DataResultCallback callback) {
         try {
-            log("Start sending data to the server: " + data, LogLevel.INFORMATION);
+            LOGGER.debug("Start sending data to the server: {}", data);
 
             Request post = new Request(Constants.HTTP_POST);
             post.setFormContent("data", data);
@@ -102,22 +97,22 @@ public abstract class HttpClientTransport implements ClientTransport {
 
             connection.prepareRequest(post);
 
-            log("Execute the request", LogLevel.VERBOSE);
+            LOGGER.debug("Execute the request");
 
             return httpConnection.execute(post, response -> {
-                log("Response received", LogLevel.VERBOSE);
+                LOGGER.trace("Response received");
                 throwOnInvalidStatusCode(response);
 
-                log("Read response to the end", LogLevel.VERBOSE);
+                LOGGER.trace("Read response to the end");
                 String data1 = response.readToEnd();
 
                 if (data1 != null) {
-                    log("Trigger onData with data: " + data1, LogLevel.VERBOSE);
+                    LOGGER.trace("Trigger onData with data: {}", data1);
                     callback.onData(data1);
                 }
             });
         } catch (Throwable e) {
-            log(e);
+            LOGGER.debug("Unable to complete http request", e);
 
             SignalRFuture<Void> future = new SignalRFuture<>();
             future.triggerError(e);
@@ -130,7 +125,7 @@ public abstract class HttpClientTransport implements ClientTransport {
     public SignalRFuture<Void> abort(ConnectionBase connection) {
         synchronized (this) {
             if (!startedAbort) {
-                log("Started aborting", LogLevel.INFORMATION);
+                LOGGER.debug("Started aborting");
                 startedAbort = true;
                 try {
                     String url = connection.getUrl() + "abort" + TransportHelper.getSendQueryString(this, connection);
@@ -142,17 +137,17 @@ public abstract class HttpClientTransport implements ClientTransport {
 
                     connection.prepareRequest(post);
 
-                    log("Execute request", LogLevel.VERBOSE);
+                    LOGGER.trace("Execute request");
                     abortFuture = httpConnection.execute(post, response -> {
-                        log("Finishing abort", LogLevel.VERBOSE);
+                        LOGGER.trace("Finishing abort");
                         startedAbort = false;
                     });
 
                     return abortFuture;
 
                 } catch (Throwable e) {
-                    log(e);
-                    log("Finishing abort", LogLevel.VERBOSE);
+                    LOGGER.debug("Error whilst aborting", e);
+                    LOGGER.trace("Finishing abort");
                     startedAbort = false;
 
                     SignalRFuture<Void> future = new SignalRFuture<>();
@@ -191,15 +186,5 @@ public abstract class HttpClientTransport implements ClientTransport {
 
             throw new InvalidHttpStatusCodeException(response.getStatus(), responseContent, headersString.toString());
         }
-
     }
-
-    protected void log(String message, LogLevel level) {
-        logger.log(getName() + " - " + message, level);
-    }
-
-    protected void log(Throwable error) {
-        logger.log(getName() + " - Error: " + error.toString(), LogLevel.CRITICAL);
-    }
-
 }

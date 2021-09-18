@@ -12,7 +12,7 @@ public class ServerSentEventsTransportTests extends HttpClientTransportTests {
 
     @Override
     protected TransportType getTransportType() {
-        return TransportType.ServerSentEvents;
+        return TransportType.SERVER_SENT_EVENTS;
     }
 
 }

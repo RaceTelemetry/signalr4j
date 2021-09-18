@@ -7,7 +7,7 @@ See License.txt in the project root for license information.
 package com.github.signalr4j.client.test.integration;
 
 public enum TransportType {
-    ServerSentEvents,
-    LongPolling,
-    Auto
+    SERVER_SENT_EVENTS,
+    LONG_POLLING,
+    AUTO
 }

@@ -6,11 +6,12 @@ See License.txt in the project root for license information.
 
 package com.github.signalr4j.client.tests.realtransport;
 
-import com.github.signalr4j.client.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.github.signalr4j.client.Connection;
+import com.github.signalr4j.client.ConnectionState;
+import com.github.signalr4j.client.SignalRFuture;
 import com.github.signalr4j.client.tests.util.MultiResult;
 import com.github.signalr4j.client.tests.util.Utils;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonPrimitive;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -27,18 +28,11 @@ public class ConnectionTests {
 
     @Test
     public void testStart() throws Exception {
+        Connection connection = new Connection(TestData.SERVER_URL, TestData.CONNECTION_QUERYSTRING);
 
-        Connection connection = new Connection(TestData.SERVER_URL, TestData.CONNECTION_QUERYSTRING, TestData.getLogger());
+        final List<ConnectionState> newStates = new ArrayList<>();
 
-        final List<ConnectionState> newStates = new ArrayList<ConnectionState>();
-        
-        connection.stateChanged(new StateChangedCallback() {
-            
-            @Override
-            public void stateChanged(ConnectionState oldState, ConnectionState newState) {
-                newStates.add(newState);
-            }
-        });
+        connection.stateChanged((oldState, newState) -> newStates.add(newState));
 
         SignalRFuture<Void> startFuture = connection.start();
 
@@ -54,11 +48,9 @@ public class ConnectionTests {
         connection.disconnect();
     }
 
-    
     @Test
     public void testMessageReceived() throws Exception {
-
-        Connection connection = new Connection(TestData.SERVER_URL, TestData.CONNECTION_QUERYSTRING, TestData.getLogger());
+        Connection connection = new Connection(TestData.SERVER_URL, TestData.CONNECTION_QUERYSTRING);
 
         final MultiResult result = new MultiResult();
 
@@ -67,35 +59,28 @@ public class ConnectionTests {
         connection.start().get();
 
         final Semaphore semaphore = new Semaphore(0);
-        connection.received(new MessageReceivedHandler() {
-
-            @Override
-            public void onMessageReceived(JsonElement json) {
-                result.listResult.add(json);
-                semaphore.release();
-            }
+        connection.received(json -> {
+            result.listResult.add(json);
+            semaphore.release();
         });
-        
+
         TestData.triggerTestMessage();
 
-        
+
         semaphore.acquire();
-        
+
         assertEquals(1, result.listResult.size());
-        JsonPrimitive json = (JsonPrimitive) result.listResult.get(0);
-        String message = json.getAsString();
-        
+        JsonNode json = (JsonNode) result.listResult.get(0);
+        String message = json.textValue();
+
         assertEquals("test message", message);
-        
+
         connection.disconnect();
     }
 
-
-   
-
     @Test
     public void testSendMessage() throws Exception {
-        Connection connection = new Connection(TestData.SERVER_URL, TestData.CONNECTION_QUERYSTRING, TestData.getLogger());
+        Connection connection = new Connection(TestData.SERVER_URL, TestData.CONNECTION_QUERYSTRING);
 
         final MultiResult result = new MultiResult();
 
@@ -105,32 +90,27 @@ public class ConnectionTests {
 
         String dataToSend = UUID.randomUUID().toString();
         connection.send(dataToSend).get();
-        
+
         String lastSentData = TestData.getLastSentData();
 
         assertEquals(dataToSend, lastSentData);
-        
+
         connection.disconnect();
     }
 
     @Test
     public void testStop() throws Exception {
-        
-        Connection connection = new Connection(TestData.SERVER_URL, TestData.CONNECTION_QUERYSTRING, TestData.getLogger());
+        Connection connection = new Connection(TestData.SERVER_URL, TestData.CONNECTION_QUERYSTRING);
 
         connection.start().get();
-        
+
         final MultiResult result = new MultiResult();
         assertEquals(ConnectionState.CONNECTED, connection.getState());
 
         final Semaphore semaphore = new Semaphore(0);
-        connection.closed(new Runnable() {
-
-            @Override
-            public void run() {
-                result.intResult++;
-                semaphore.release();
-            }
+        connection.closed(() -> {
+            result.intResult++;
+            semaphore.release();
         });
 
         connection.stop();
@@ -140,5 +120,4 @@ public class ConnectionTests {
         assertEquals(ConnectionState.DISCONNECTED, connection.getState());
         assertEquals(1, result.intResult);
     }
-
 }

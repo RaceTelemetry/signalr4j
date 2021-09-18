@@ -10,127 +10,127 @@ import com.github.signalr4j.client.test.integration.ApplicationContext;
 
 
 public abstract class TestCase {
-	private String mName;
+    private String name;
 
-	private String mDescription;
+    private String description;
 
-	private Class<?> mExpectedExceptionClass;
+    private Class<?> expectedExceptionClass;
 
-	private boolean mEnabled;
+    private boolean enabled;
 
-	private TestStatus mStatus;
+    private TestStatus status;
 
-	private StringBuilder mTestLog;
+    private StringBuilder testLog;
 
-	public TestCase(String name) {
-		mEnabled = false;
-		mStatus = TestStatus.NotRun;
-		mTestLog = new StringBuilder();
-		mName = name;
-	}
-	
-	public TestCase() {
-		this(null);
-	}
+    public TestCase(String name) {
+        enabled = false;
+        status = TestStatus.NOT_RUN;
+        testLog = new StringBuilder();
+        this.name = name;
+    }
 
-	public void log(String log) {
-		mTestLog.append(log);
-		mTestLog.append("\n");
-	}
+    public TestCase() {
+        this(null);
+    }
 
-	public String getLog() {
-		return mTestLog.toString();
-	}
-	
-	public void clearLog() {
-		mTestLog = new StringBuilder();
-	}
+    public void log(String log) {
+        testLog.append(log);
+        testLog.append("\n");
+    }
 
-	public TestStatus getStatus() {
-		return mStatus;
-	}
+    public String getLog() {
+        return testLog.toString();
+    }
 
-	public void setStatus(TestStatus status) {
-		mStatus = status;
-	}
+    public void clearLog() {
+        testLog = new StringBuilder();
+    }
 
-	public boolean isEnabled() {
-		return mEnabled;
-	}
+    public TestStatus getStatus() {
+        return status;
+    }
 
-	public void setEnabled(boolean enabled) {
-		mEnabled = enabled;
-	}
+    public void setStatus(TestStatus status) {
+        this.status = status;
+    }
 
-	public void run(TestExecutionCallback callback) {
-		try {
-			if (callback != null)
-				callback.onTestStart(this);
-		} catch (Exception e) {
-			// do nothing
-		}
-		mStatus = TestStatus.Running;
-		try {
-		    ApplicationContext.executeTest(this, callback);
-		} catch (Exception e) {
-			StackTraceElement[] stackTrace = e.getStackTrace();
-			for (int i = 0; i < stackTrace.length; i++) {
-				log("  " + stackTrace[i].toString());
-			}
-			
-			TestResult result;
-			if (e.getClass() != this.getExpectedExceptionClass()) {
-				result = createResultFromException(e);
-				mStatus = result.getStatus();
-			} else {
-				result = new TestResult();
-				result.setException(e);
-				result.setStatus(TestStatus.Passed);
-				result.setTestCase(this);
-				mStatus = result.getStatus();
-			}
+    public boolean isEnabled() {
+        return enabled;
+    }
 
-			if (callback != null)
-				callback.onTestComplete(this, result);
-		}
-	}
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
 
-	public abstract TestResult executeTest();
+    public void run(TestExecutionCallback callback) {
+        try {
+            if (callback != null)
+                callback.onTestStart(this);
+        } catch (Exception e) {
+            // do nothing
+        }
+        status = TestStatus.RUNNING;
+        try {
+            ApplicationContext.executeTest(this, callback);
+        } catch (Exception e) {
+            StackTraceElement[] stackTrace = e.getStackTrace();
+            for (int i = 0; i < stackTrace.length; i++) {
+                log("  " + stackTrace[i].toString());
+            }
 
-	protected TestResult createResultFromException(Exception e) {
-		return createResultFromException(new TestResult(), e);
-	}
+            TestResult result;
+            if (e.getClass() != this.getExpectedExceptionClass()) {
+                result = createResultFromException(e);
+                status = result.getStatus();
+            } else {
+                result = new TestResult();
+                result.setException(e);
+                result.setStatus(TestStatus.PASSED);
+                result.setTestCase(this);
+                status = result.getStatus();
+            }
 
-	protected TestResult createResultFromException(TestResult result, Exception e) {
-		result.setException(e);
-		result.setTestCase(this);
+            if (callback != null)
+                callback.onTestComplete(this, result);
+        }
+    }
 
-		result.setStatus(TestStatus.Failed);
+    public abstract TestResult executeTest();
 
-		return result;
-	}
+    protected TestResult createResultFromException(Exception e) {
+        return createResultFromException(new TestResult(), e);
+    }
 
-	public String getName() {
-		return mName;
-	}
+    protected TestResult createResultFromException(TestResult result, Exception e) {
+        result.setException(e);
+        result.setTestCase(this);
 
-	public void setName(String name) {
-		mName = name;
-	}
+        result.setStatus(TestStatus.FAILED);
 
-	public String getDescription() {
-		return mDescription;
-	}
+        return result;
+    }
 
-	public void setDescription(String description) {
-		mDescription = description;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public void setExpectedExceptionClass(Class<?> expectedExceptionClass) {
-		mExpectedExceptionClass = expectedExceptionClass;
-	}
+    public void setName(String name) {
+        this.name = name;
+    }
 
-	public Class<?> getExpectedExceptionClass() {
-		return mExpectedExceptionClass;
-	}
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setExpectedExceptionClass(Class<?> expectedExceptionClass) {
+        this.expectedExceptionClass = expectedExceptionClass;
+    }
+
+    public Class<?> getExpectedExceptionClass() {
+        return expectedExceptionClass;
+    }
 }
