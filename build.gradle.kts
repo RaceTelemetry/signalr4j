@@ -1,8 +1,8 @@
 plugins {
     `java-library`
     `maven-publish`
-    signing
-    id("net.researchgate.release") version "2.8.1"
+//    signing
+//    id("net.researchgate.release") version "2.8.1"
 }
 
 java {
@@ -15,11 +15,11 @@ repositories {
 }
 
 dependencies {
-    api("com.fasterxml.jackson.core:jackson-databind:2.12.5")
-    api("org.java-websocket:Java-WebSocket:1.5.2")
-    api("org.slf4j:slf4j-api:1.7.32")
+    api("com.fasterxml.jackson.core:jackson-databind:2.13.3")
+    api("org.java-websocket:Java-WebSocket:1.5.3")
+    api("org.slf4j:slf4j-api:1.7.36")
 
-    val lombokAnnotations = "org.projectlombok:lombok:1.18.20"
+    val lombokAnnotations = "org.projectlombok:lombok:1.18.24"
     compileOnly(lombokAnnotations)
     annotationProcessor(lombokAnnotations)
     testCompileOnly(lombokAnnotations)
@@ -27,11 +27,24 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.hamcrest:hamcrest-library:2.2")
-    testImplementation("org.slf4j:slf4j-simple:1.7.32")
+    testImplementation("org.slf4j:slf4j-simple:1.7.36")
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 tasks.withType<JavaCompile> {
     options.encoding = Charsets.UTF_8.name()
+}
+
+configure<PublishingExtension> {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+        }
+    }
 }
 
 //
