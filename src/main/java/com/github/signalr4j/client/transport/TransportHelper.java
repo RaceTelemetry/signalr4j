@@ -31,24 +31,23 @@ public class TransportHelper {
 
         data = data.trim();
 
-        if ("".equals(data)) {
+        if (data.isEmpty()) {
             return result;
         }
 
         JsonNode json = Connection.MAPPER.readTree(data);
 
-
-        if (json.size() == 0) {
+        if (json.isEmpty()) {
             return result;
         }
 
-        if (json.get("I") != null) {
+        if (json.has("I")) {
             LOGGER.trace("Invoking message received with: {}", json);
             connection.onReceived(json);
         } else {
 
             // disconnected
-            if (json.get("D") != null) {
+            if (json.has("D")) {
                 if (json.get("D").intValue() == 1) {
                     LOGGER.trace("Disconnect message received");
                     result.setDisconnect(true);
@@ -57,14 +56,14 @@ public class TransportHelper {
             }
 
             // should reconnect
-            if (json.get("T") != null) {
+            if (json.has("T")) {
                 if (json.get("T").intValue() == 1) {
                     LOGGER.trace("Reconnect message received");
                     result.setReconnect(true);
                 }
             }
 
-            if (json.get("G") != null) {
+            if (json.has("G")) {
                 String groupsToken = json.get("G").textValue();
                 LOGGER.trace("Group token received: {}" + groupsToken);
                 connection.setGroupsToken(groupsToken);
@@ -72,7 +71,7 @@ public class TransportHelper {
 
             JsonNode messages = json.get("M");
             if (messages != null && messages.isArray()) {
-                if (json.get("C") != null) {
+                if (json.has("C")) {
                     String messageId = json.get("C").textValue();
                     LOGGER.trace("MessageId received: {}", messageId);
                     connection.setMessageId(messageId);
@@ -84,7 +83,7 @@ public class TransportHelper {
                 }
             }
 
-            if (json.get("S") != null) {
+            if (json.has("S")) {
                 if (json.get("S").intValue() == 1) {
                     LOGGER.debug("Initialization message received");
                     result.setInitialize(true);
