@@ -1,1 +1,1 @@
-rootProject.name = "signalr4j"
+rootProject.name = "signalr-client"
