@@ -28,8 +28,9 @@ public class StreamResponse implements Response {
     /**
      * Initializes the StreamResponse
      *
-     * @param stream stream to read
-     * @param status HTTP status code
+     * @param stream  stream to read
+     * @param status  HTTP status code
+     * @param headers Response headers
      */
     public StreamResponse(InputStream stream, int status, Map<String, List<String>> headers) {
         originalStream = stream;

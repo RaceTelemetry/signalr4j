@@ -17,57 +17,79 @@ public interface ConnectionBase {
 
     /**
      * Returns the URL used by the connection
+     *
+     * @return The URL of the connection
      */
     String getUrl();
 
     /**
      * Returns the credentials used by the connection
+     *
+     * @return credentials
      */
     Credentials getCredentials();
 
     /**
      * Sets the credentials the connection should use
+     *
+     * @param credentials Credentials
      */
     void setCredentials(Credentials credentials);
 
     /**
      * Sets the message id the connection should use
+     *
+     * @param messageId message ID of the connection
      */
     void setMessageId(String messageId);
 
     /**
      * Sets whether the connection should be re-attempted
      * on error or we simply disconnect and notify user
+     *
+     * @param reconnectOnError should reconnect on error
      */
     void setReconnectOnError(boolean reconnectOnError);
 
     /**
      * Sets the groups token the connection should use
+     *
+     * @param groupsToken group token of the connection
      */
     void setGroupsToken(String groupsToken);
 
     /**
      * Sets the handler for the "Reconnecting" event
+     *
+     * @param handler reconnection handler
      */
     void reconnecting(Runnable handler);
 
     /**
      * Sets the handler for the "Reconnected" event
+     *
+     * @param handler reconnected handler
      */
     void reconnected(Runnable handler);
 
     /**
      * Sets the handler for the "Connected" event
+     *
+     * @param handler connected handler
      */
     void connected(Runnable handler);
 
     /**
      * Sets the handler for the "Error" event
+     *
+     * @param handler error handler
      */
     void error(ErrorCallback handler);
 
     /**
      * Sets the handler for the "StateChanged" event
+     *
+     * @param handler state changed handler
      */
     void stateChanged(StateChangedCallback handler);
 
@@ -81,6 +103,8 @@ public interface ConnectionBase {
 
     /**
      * Sets the handler for the "Received" event
+     *
+     * @param handler message received handler
      */
     void received(MessageReceivedHandler handler);
 
@@ -88,46 +112,64 @@ public interface ConnectionBase {
 
     /**
      * Sets the handler for the "ConnectionSlow" event
+     *
+     * @param handler connection slow handler
      */
     void connectionSlow(Runnable handler);
 
     /**
      * Sets the handler for the "Closed" event
+     *
+     * @param handler conneciton closed handler
      */
     void closed(Runnable handler);
 
     /**
      * Returns the connection token
+     *
+     * @return connection token
      */
     String getConnectionToken();
 
     /**
-     * Returns the connection Id
+     * Returns the connection ID
+     *
+     * @return connection ID
      */
     String getConnectionId();
 
     /**
      * Returns the query string used by the connection
+     *
+     * @return query string
      */
     String getQueryString();
 
     /**
-     * Returns the current message Id
+     * Returns the current message ID
+     *
+     * @return message ID
      */
     String getMessageId();
 
     /**
      * Returns the connection groups token
+     *
+     * @return groups token
      */
     String getGroupsToken();
 
     /**
      * Returns the data used by the connection
+     *
+     * @return connection data
      */
     String getConnectionData();
 
     /**
      * Returns the connection state
+     *
+     * @return connection state
      */
     ConnectionState getState();
 
@@ -166,11 +208,16 @@ public interface ConnectionBase {
 
     /**
      * Returns the connection headers
+     *
+     * @return connection HTTP headers
      */
     Map<String, String> getHeaders();
 
     /**
      * Add a header
+     *
+     * @param headerName  name of the HTTP header
+     * @param headerValue value of the HTTP header
      */
     void addHeader(String headerName, String headerValue);
 }

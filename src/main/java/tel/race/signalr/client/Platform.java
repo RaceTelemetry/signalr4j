@@ -42,6 +42,8 @@ public class Platform {
 
     /**
      * Generates the User-Agent
+     *
+     * @return User agent string
      */
     public static String getUserAgent() {
         String osName;

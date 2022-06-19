@@ -41,6 +41,8 @@ public class Request {
 
     /**
      * Sets the request content
+     *
+     * @param content contents of the request
      */
     public void setContent(String content) {
         this.content = content;
@@ -48,6 +50,8 @@ public class Request {
 
     /**
      * Returns the request content
+     *
+     * @return contents of the request
      */
     public String getContent() {
         return content;
@@ -89,6 +93,8 @@ public class Request {
 
     /**
      * Returns the request headers
+     *
+     * @return header of the request
      */
     public Map<String, String> getHeaders() {
         return new HashMap<>(headers);
@@ -109,6 +115,8 @@ public class Request {
 
     /**
      * Sets the request headers
+     *
+     * @param headers headers to set for this request
      */
     public void setHeaders(Map<String, String> headers) {
         this.headers = new HashMap<>();
@@ -139,6 +147,8 @@ public class Request {
 
     /**
      * Sets the request HTTP verb
+     *
+     * @param httpVerb The HTTP verb
      */
     public void setVerb(String httpVerb) {
         verb = httpVerb;
@@ -146,6 +156,8 @@ public class Request {
 
     /**
      * Returns the request HTTP verb
+     *
+     * @return The HTTP verb
      */
     public String getVerb() {
         return verb;
@@ -153,6 +165,8 @@ public class Request {
 
     /**
      * Sets the request URL
+     *
+     * @param url The URL of the request
      */
     public void setUrl(String url) {
         this.url = url;
@@ -160,6 +174,8 @@ public class Request {
 
     /**
      * Returns the request URL
+     *
+     * @return The URL of the request
      */
     public String getUrl() {
         return url;

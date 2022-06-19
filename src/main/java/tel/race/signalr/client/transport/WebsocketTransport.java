@@ -62,6 +62,7 @@ public class WebsocketTransport extends HttpClientTransport {
         return true;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public SignalRFuture<Void> start(final ConnectionBase connection, ConnectionType connectionType,
                                      final DataResultCallback callback) {

@@ -17,8 +17,10 @@ public interface Response {
 
     /**
      * Returns the response headers
+     *
+     * @return The headers in the response
      */
-    public Map<String, List<String>> getHeaders();
+    Map<String, List<String>> getHeaders();
 
     /**
      * Return the header value
@@ -26,34 +28,36 @@ public interface Response {
      * @param headerName Header to retrieve
      * @return The header Values
      */
-    public List<String> getHeader(String headerName);
+    List<String> getHeader(String headerName);
 
     /**
      * Reads the response stream to the end and returns its value as a String
      *
      * @return The response content as a String
-     * @throws java.io.IOException
+     * @throws IOException Throws exception if an error occurs whilst reading the response stream
      */
-    public String readToEnd() throws IOException;
+    String readToEnd() throws IOException;
 
     /**
      * Reads one line from the response stream
      *
      * @return A line from the response stream
-     * @throws java.io.IOException
+     * @throws IOException Throws exception if an error occurs whilst reading the response stream
      */
-    public String readLine() throws IOException;
+    String readLine() throws IOException;
 
     /**
      * Returns the response HTTP Status code
+     *
+     * @return The HTTP status code
      */
-    public int getStatus();
+    int getStatus();
 
     /**
      * Reads the response stream to the end and returns its value as a Byte[]
      *
      * @return The response content as a Byte[]
-     * @throws java.io.IOException
+     * @throws java.io.IOException Throws exception if an error occurs whilst reading the response stream
      */
-    public byte[] readAllBytes() throws IOException;
+    byte[] readAllBytes() throws IOException;
 }

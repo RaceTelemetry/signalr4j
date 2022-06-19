@@ -61,6 +61,7 @@ public class HubProxy {
      * Gets the state for a key
      *
      * @param key Key to get
+     * @return state node
      */
     public JsonNode getState(String key) {
         return state.get(key);
@@ -69,8 +70,11 @@ public class HubProxy {
     /**
      * Gets the value for a key
      *
+     * @param <E>   Class to map result value to
      * @param key   Key to get
-     * @param clazz Class used to to deserialize the value
+     * @param clazz Class used to deserialize the value
+     * @return value mapped to generic class
+     * @throws JsonProcessingException Throws exception when JSON cannot be mapped to the given class
      */
     public <E> E getValue(String key, Class<E> clazz) throws JsonProcessingException {
         return Connection.MAPPER.treeToValue(getState(key), clazz);
@@ -164,6 +168,8 @@ public class HubProxy {
     /**
      * Invokes a hub method that returns a value
      *
+     * @param <E> Class to map result value to
+     * @param resultClass class that will be used to map the result JSON
      * @param method Method name
      * @param args   Method arguments
      * @return A Future for the operation, that will return the method result

@@ -11,11 +11,15 @@ import tel.race.signalr.client.http.HttpConnection;
 public interface PlatformComponent {
     /**
      * Returns a platform-specific HttpConnection
+     *
+     * @return connection
      */
     public HttpConnection createHttpConnection();
 
     /**
      * Returns a platform-specific Operating System name
+     *
+     * @return operating system
      */
     public String getOSName();
 

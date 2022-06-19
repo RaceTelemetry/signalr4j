@@ -121,6 +121,7 @@ public class SignalRFuture<V> implements Future<V> {
      * completed, it triggers the handler right away.
      *
      * @param action The handler
+     * @return this future
      */
     public SignalRFuture<V> done(Action<V> action) {
         synchronized (doneLock) {
@@ -144,6 +145,7 @@ public class SignalRFuture<V> implements Future<V> {
      * the handler will be called once per error, right away.
      *
      * @param errorCallback The handler
+     * @return this future
      */
     public SignalRFuture<V> onError(ErrorCallback errorCallback) {
         synchronized (errorLock) {

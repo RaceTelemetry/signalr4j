@@ -62,6 +62,7 @@ public class HttpConnectionFuture extends SignalRFuture<Void> {
          * Callback invoked when a response is returned by the request
          *
          * @param response The returned response
+         * @throws Exception handling response
          */
         public void onResponse(Response response) throws Exception;
     }

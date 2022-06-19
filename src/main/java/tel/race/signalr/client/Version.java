@@ -35,6 +35,7 @@ public class Version {
      * Returns a part of the version
      *
      * @param index Zero-based index for the version parts
+     * @return part of the version
      */
     public int getPart(int index) {
         return mParts[index];

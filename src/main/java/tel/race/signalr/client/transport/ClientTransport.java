@@ -18,11 +18,15 @@ public interface ClientTransport {
 
     /**
      * Transport name
+     *
+     * @return The name of the transport
      */
     public String getName();
 
     /**
      * True if the transport supports keepalive messages
+     *
+     * @return whether the transport supports keepalive messages
      */
     public boolean supportKeepAlive();
 

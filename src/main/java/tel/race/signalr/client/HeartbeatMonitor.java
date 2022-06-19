@@ -114,6 +114,8 @@ public class HeartbeatMonitor {
 
     /**
      * Returns the "Warning" event handler
+     *
+     * @return runnable handler
      */
     public Runnable getOnWarning() {
         return onWarning;
@@ -121,6 +123,8 @@ public class HeartbeatMonitor {
 
     /**
      * Sets the "Warning" event handler
+     *
+     * @param onWarning warning handler
      */
     public void setOnWarning(Runnable onWarning) {
         this.onWarning = onWarning;
@@ -128,6 +132,8 @@ public class HeartbeatMonitor {
 
     /**
      * Returns the "Timeout" event handler
+     *
+     * @return runnable handler
      */
     public Runnable getOnTimeout() {
         return onTimeout;
@@ -135,6 +141,8 @@ public class HeartbeatMonitor {
 
     /**
      * Sets the "Timeout" event handler
+     *
+     * @param onTimeout timeout handler
      */
     public void setOnTimeout(Runnable onTimeout) {
         this.onTimeout = onTimeout;
@@ -142,6 +150,8 @@ public class HeartbeatMonitor {
 
     /**
      * Returns the Keep Alive data
+     *
+     * @return runnable handler
      */
     public KeepAliveData getKeepAliveData() {
         return keepAliveData;
@@ -149,6 +159,8 @@ public class HeartbeatMonitor {
 
     /**
      * Sets the Keep Alive data
+     *
+     * @param keepAliveData keep alive data
      */
     public void setKeepAliveData(KeepAliveData keepAliveData) {
         this.keepAliveData = keepAliveData;
